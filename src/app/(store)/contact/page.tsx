@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 
-// TODO: update to the brand's real support inbox if different.
-const CONTACT_EMAIL = 'hello@lusiant.co'
+const CONTACT_EMAIL = 'contact@lusiant.co'
 
 export default function ContactPage() {
   const [name, setName] = useState('')
@@ -74,12 +73,12 @@ export default function ContactPage() {
         </p>
         <p>
           <a
-            href="https://instagram.com/lusiant"
+            href="https://instagram.com/lusiant.sp"
             target="_blank"
             rel="noopener noreferrer"
             className="text-black hover:opacity-60 transition-opacity"
           >
-            @lusiant on Instagram
+            @lusiant.sp on Instagram
           </a>
         </p>
       </div>
