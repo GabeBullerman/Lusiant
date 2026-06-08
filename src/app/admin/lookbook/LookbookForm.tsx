@@ -2,13 +2,18 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { LookbookSection } from '@/lib/types'
-import { ImageUpload } from '@/components/admin/ImageUpload'
-import { ChevronUp, ChevronDown, Trash2, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Trash2, Plus, Upload, Loader2, X } from 'lucide-react'
+import Image from 'next/image'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface Props {
   initialSections: LookbookSection[]
+}
+
+interface DragSource {
+  section: number
+  index: number
 }
 
 export function LookbookForm({ initialSections }: Props) {
@@ -17,6 +22,10 @@ export function LookbookForm({ initialSections }: Props) {
   )
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [uploadingSection, setUploadingSection] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [drag, setDrag] = useState<DragSource | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ section: number; index: number } | null>(null)
   const router = useRouter()
 
   function updateSection(index: number, patch: Partial<LookbookSection>) {
@@ -41,6 +50,60 @@ export function LookbookForm({ initialSections }: Props) {
     })
   }
 
+  function removeImage(sectionIndex: number, url: string) {
+    setSections(prev =>
+      prev.map((s, i) => (i === sectionIndex ? { ...s, images: s.images.filter(u => u !== url) } : s))
+    )
+  }
+
+  // Move an image from one (section,index) to another. Used by drag-and-drop.
+  function moveImage(from: DragSource, to: { section: number; index: number }) {
+    setSections(prev => {
+      const next = prev.map(s => ({ ...s, images: [...s.images] }))
+      const moved = next[from.section]?.images[from.index]
+      if (moved === undefined) return prev
+      next[from.section].images.splice(from.index, 1)
+      let targetIndex = to.index
+      if (from.section === to.section && from.index < to.index) targetIndex -= 1
+      const clamped = Math.max(0, Math.min(targetIndex, next[to.section].images.length))
+      next[to.section].images.splice(clamped, 0, moved)
+      return next
+    })
+  }
+
+  function handleDropOn(section: number, index: number) {
+    if (drag) moveImage(drag, { section, index })
+    setDrag(null)
+    setDropTarget(null)
+  }
+
+  async function uploadToSection(sectionIndex: number, files: FileList | null) {
+    if (!files?.length) return
+    setUploadingSection(sectionIndex)
+    setError(null)
+    const supabase = createClient()
+    const urls: string[] = []
+    let lastError = ''
+    for (const file of Array.from(files)) {
+      const ext = file.name.split('.').pop()
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const { error: upErr } = await supabase.storage.from('site').upload(path, file, { upsert: false })
+      if (!upErr) {
+        const { data } = supabase.storage.from('site').getPublicUrl(path)
+        urls.push(data.publicUrl)
+      } else {
+        lastError = upErr.message
+      }
+    }
+    if (urls.length) {
+      setSections(prev =>
+        prev.map((s, i) => (i === sectionIndex ? { ...s, images: [...s.images, ...urls] } : s))
+      )
+    }
+    if (lastError) setError(`Some images failed to upload: ${lastError}`)
+    setUploadingSection(null)
+  }
+
   async function save() {
     setSaving(true)
     const cleaned = sections
@@ -60,55 +123,131 @@ export function LookbookForm({ initialSections }: Props) {
 
   return (
     <div className="space-y-6">
-      {sections.map((section, i) => (
-        <section key={i} className="bg-white border border-gray-100 rounded p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <input
-              value={section.title}
-              onChange={e => updateSection(i, { title: e.target.value })}
-              className="flex-1 border border-gray-200 rounded px-3 py-2 text-sm font-medium tracking-wide focus:outline-none focus:border-black"
-              placeholder="Section title (e.g. F/W 26)"
-            />
-            <div className="flex items-center gap-1">
+      {error && <p className="text-xs text-red-600">{error}</p>}
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+        {sections.map((section, si) => (
+          <section
+            key={si}
+            className="bg-white border border-gray-100 rounded p-6 space-y-4"
+            onDragOver={e => {
+              if (drag) e.preventDefault()
+            }}
+            onDrop={e => {
+              e.preventDefault()
+              handleDropOn(si, section.images.length)
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <input
+                value={section.title}
+                onChange={e => updateSection(si, { title: e.target.value })}
+                className="flex-1 border border-gray-200 rounded px-3 py-2 text-sm font-medium tracking-wide focus:outline-none focus:border-black"
+                placeholder="Section title (e.g. F/W 26)"
+              />
               <button
                 type="button"
-                onClick={() => moveSection(i, -1)}
-                disabled={i === 0}
+                onClick={() => moveSection(si, -1)}
+                disabled={si === 0}
                 className="p-2 text-gray-400 hover:text-black disabled:opacity-30 disabled:hover:text-gray-400"
-                title="Move section up"
+                title="Move section left"
               >
-                <ChevronUp size={16} />
+                <ChevronLeft size={16} />
               </button>
               <button
                 type="button"
-                onClick={() => moveSection(i, 1)}
-                disabled={i === sections.length - 1}
+                onClick={() => moveSection(si, 1)}
+                disabled={si === sections.length - 1}
                 className="p-2 text-gray-400 hover:text-black disabled:opacity-30 disabled:hover:text-gray-400"
-                title="Move section down"
+                title="Move section right"
               >
-                <ChevronDown size={16} />
+                <ChevronRight size={16} />
               </button>
               <button
                 type="button"
-                onClick={() => removeSection(i)}
+                onClick={() => removeSection(si)}
                 className="p-2 text-gray-400 hover:text-red-600"
                 title="Delete section"
               >
                 <Trash2 size={16} />
               </button>
             </div>
-          </div>
 
-          <ImageUpload
-            bucket="site"
-            value={section.images}
-            onChange={urls => updateSection(i, { images: urls })}
-          />
-          <p className="text-xs text-gray-400">
-            {section.images.length} image{section.images.length === 1 ? '' : 's'} — hover an image to reorder or remove
-          </p>
-        </section>
-      ))}
+            {/* Upload dropzone */}
+            <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded cursor-pointer hover:border-gray-400 transition-colors py-6 gap-1.5">
+              {uploadingSection === si ? (
+                <Loader2 size={20} className="animate-spin text-gray-400" />
+              ) : (
+                <>
+                  <Upload size={20} className="text-gray-400" />
+                  <span className="text-xs text-gray-500 tracking-wide">Click to upload images</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={e => uploadToSection(si, e.target.files)}
+                disabled={uploadingSection === si}
+              />
+            </label>
+
+            {/* Image grid (draggable) */}
+            {section.images.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {section.images.map((url, i) => {
+                  const isTarget = dropTarget?.section === si && dropTarget?.index === i
+                  return (
+                    <div
+                      key={url}
+                      draggable
+                      onDragStart={e => {
+                        e.dataTransfer.effectAllowed = 'move'
+                        e.dataTransfer.setData('text/plain', url)
+                        setDrag({ section: si, index: i })
+                      }}
+                      onDragEnd={() => {
+                        setDrag(null)
+                        setDropTarget(null)
+                      }}
+                      onDragOver={e => {
+                        if (drag) {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setDropTarget({ section: si, index: i })
+                        }
+                      }}
+                      onDrop={e => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        handleDropOn(si, i)
+                      }}
+                      className={`relative group aspect-square bg-gray-50 rounded overflow-hidden cursor-grab active:cursor-grabbing ring-2 transition-shadow ${
+                        isTarget ? 'ring-black' : 'ring-transparent'
+                      } ${drag?.section === si && drag?.index === i ? 'opacity-40' : ''}`}
+                    >
+                      <Image src={url} alt="" fill className="object-cover pointer-events-none" sizes="160px" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(si, url)}
+                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove image"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <p className="text-xs text-gray-400">
+              {section.images.length} image{section.images.length === 1 ? '' : 's'} — drag to reorder or move to another section
+            </p>
+          </section>
+        ))}
+      </div>
 
       <button
         type="button"
