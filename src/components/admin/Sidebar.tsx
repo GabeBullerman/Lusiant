@@ -3,13 +3,14 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, ShoppingBag, Package, Settings, LogOut, ExternalLink, Images } from 'lucide-react'
+import { LayoutDashboard, ShoppingBag, Package, Settings, LogOut, ExternalLink, Images, Users } from 'lucide-react'
 
 const links = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/lookbook', label: 'Lookbook', icon: Images },
+  { href: '/admin/community', label: 'Community', icon: Users },
   { href: '/admin/settings', label: 'Site Settings', icon: Settings },
 ]
 

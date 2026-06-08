@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { ProductCard } from '@/components/store/ProductCard'
+import { LookbookCarousel } from '@/components/store/LookbookCarousel'
+import { getCommunity } from '@/lib/site-content'
 import { HeroSetting, Product } from '@/lib/types'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -42,7 +44,11 @@ async function getFeaturedProducts(): Promise<Product[]> {
 }
 
 export default async function HomePage() {
-  const [hero, featured] = await Promise.all([getHero(), getFeaturedProducts()])
+  const [hero, featured, community] = await Promise.all([
+    getHero(),
+    getFeaturedProducts(),
+    getCommunity(),
+  ])
 
   return (
     <>
@@ -93,6 +99,13 @@ export default async function HomePage() {
       {featured.length === 0 && (
         <section className="max-w-screen-xl mx-auto px-6 py-16 text-center">
           <p className="text-xs tracking-widest text-gray-400 uppercase">New arrivals coming soon</p>
+        </section>
+      )}
+
+      {/* Community */}
+      {community.length > 0 && (
+        <section className="max-w-screen-xl mx-auto px-6 pb-20">
+          <LookbookCarousel title="Community" images={community} />
         </section>
       )}
     </>

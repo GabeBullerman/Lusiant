@@ -1,4 +1,5 @@
 import { POLICIES } from '@/lib/policy-content'
+import { getPolicyOverride } from '@/lib/site-content'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
@@ -18,7 +19,8 @@ export async function generateMetadata({
 
 export default async function PolicyPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const policy = POLICIES[slug]
+  // Prefer an exact-text override stored in the DB; fall back to the bundled default.
+  const policy = (await getPolicyOverride(slug)) ?? POLICIES[slug]
   if (!policy) notFound()
 
   return (
