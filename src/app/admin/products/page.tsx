@@ -1,26 +1,57 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAllCollections } from '@/lib/collections'
 import { Product } from '@/lib/types'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Plus } from 'lucide-react'
 import { DeleteProductButton } from './DeleteProductButton'
+import { ProductFilters } from './ProductFilters'
 
-async function getProducts(): Promise<Product[]> {
+interface Filters {
+  collection?: string
+  status?: string
+  sort?: string
+}
+
+async function getProducts({ collection, status, sort }: Filters): Promise<Product[]> {
   const supabase = await createClient()
-  const { data } = await supabase
-    .from('products')
-    .select('*')
-    .order('created_at', { ascending: false })
+  let q = supabase.from('products').select('*')
+
+  if (collection) q = q.ilike('category', collection)
+  if (status === 'active') q = q.eq('is_active', true)
+  else if (status === 'soldout') q = q.eq('is_active', false)
+  else if (status === 'featured') q = q.eq('is_featured', true)
+
+  switch (sort) {
+    case 'name': q = q.order('name', { ascending: true }); break
+    case 'price_desc': q = q.order('price', { ascending: false }); break
+    case 'price_asc': q = q.order('price', { ascending: true }); break
+    case 'stock': q = q.order('stock_quantity', { ascending: true }); break
+    default: q = q.order('created_at', { ascending: false })
+  }
+
+  const { data } = await q
   return (data as Product[]) ?? []
 }
 
-export default async function AdminProductsPage() {
-  const products = await getProducts()
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Filters>
+}) {
+  const filters = await searchParams
+  const [products, collections] = await Promise.all([
+    getProducts(filters),
+    getAllCollections(),
+  ])
+  const isFiltered = Boolean(filters.collection || filters.status || filters.sort)
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-xl font-semibold tracking-wide">Products</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-semibold tracking-wide">
+          Products <span className="text-gray-400 text-sm font-normal">({products.length})</span>
+        </h1>
         <Link
           href="/admin/products/new"
           className="flex items-center gap-2 bg-black text-white px-5 py-2.5 text-sm tracking-widest hover:bg-gray-900 transition-colors"
@@ -30,10 +61,21 @@ export default async function AdminProductsPage() {
         </Link>
       </div>
 
+      <ProductFilters collections={collections} />
+
       {products.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
-          <p className="text-sm tracking-wide">No products yet.</p>
-          <Link href="/admin/products/new" className="text-black text-sm underline mt-2 inline-block">Add your first product →</Link>
+          {isFiltered ? (
+            <>
+              <p className="text-sm tracking-wide">No products match these filters.</p>
+              <Link href="/admin/products" className="text-black text-sm underline mt-2 inline-block">Clear filters →</Link>
+            </>
+          ) : (
+            <>
+              <p className="text-sm tracking-wide">No products yet.</p>
+              <Link href="/admin/products/new" className="text-black text-sm underline mt-2 inline-block">Add your first product →</Link>
+            </>
+          )}
         </div>
       ) : (
         <div className="bg-white border border-gray-100 rounded overflow-hidden">

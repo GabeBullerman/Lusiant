@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Order } from '@/lib/types'
+import { OrderFilters } from './OrderFilters'
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -9,24 +10,49 @@ const statusColors: Record<string, string> = {
   cancelled: 'bg-red-100 text-red-700',
 }
 
-async function getOrders(): Promise<Order[]> {
+interface Filters {
+  status?: string
+  sort?: string
+}
+
+async function getOrders({ status, sort }: Filters): Promise<Order[]> {
   const supabase = await createClient()
-  const { data } = await supabase
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false })
+  let q = supabase.from('orders').select('*')
+
+  if (status) q = q.eq('status', status)
+
+  switch (sort) {
+    case 'oldest': q = q.order('created_at', { ascending: true }); break
+    case 'total_desc': q = q.order('total', { ascending: false }); break
+    case 'total_asc': q = q.order('total', { ascending: true }); break
+    default: q = q.order('created_at', { ascending: false })
+  }
+
+  const { data } = await q
   return (data as Order[]) ?? []
 }
 
-export default async function AdminOrdersPage() {
-  const orders = await getOrders()
+export default async function AdminOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Filters>
+}) {
+  const filters = await searchParams
+  const orders = await getOrders(filters)
+  const isFiltered = Boolean(filters.status || filters.sort)
 
   return (
     <div className="p-8">
-      <h1 className="text-xl font-semibold tracking-wide mb-8">Orders</h1>
+      <h1 className="text-xl font-semibold tracking-wide mb-6">
+        Orders <span className="text-gray-400 text-sm font-normal">({orders.length})</span>
+      </h1>
+
+      <OrderFilters />
 
       {orders.length === 0 ? (
-        <p className="text-center py-20 text-sm text-gray-400">No orders yet</p>
+        <p className="text-center py-20 text-sm text-gray-400">
+          {isFiltered ? 'No orders match these filters' : 'No orders yet'}
+        </p>
       ) : (
         <div className="bg-white border border-gray-100 rounded overflow-hidden">
           <table className="w-full text-sm">
