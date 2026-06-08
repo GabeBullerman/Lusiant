@@ -38,6 +38,8 @@ export default async function LookbookPage() {
                   alt={img.caption ?? `Lookbook ${i + 1}`}
                   width={800}
                   height={1000}
+                  quality={60}
+                  sizes="(max-width: 768px) 50vw, 33vw"
                   className="w-full object-cover"
                 />
               </div>

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { ProductCard } from '@/components/store/ProductCard'
 import { HeroSetting, Product } from '@/lib/types'
+import Image from 'next/image'
 import Link from 'next/link'
 
 async function getHero(): Promise<HeroSetting> {
@@ -46,10 +47,18 @@ export default async function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section
-        className="relative h-[85vh] flex items-end pb-12 px-8"
-        style={hero.image_url ? { backgroundImage: `url(${hero.image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { backgroundColor: '#111' }}
-      >
+      <section className="relative h-[85vh] flex items-end pb-12 px-8 overflow-hidden bg-[#111]">
+        {hero.image_url && (
+          <Image
+            src={hero.image_url}
+            alt={hero.title}
+            fill
+            priority
+            sizes="100vw"
+            quality={70}
+            className="object-cover"
+          />
+        )}
         <div className="relative z-10">
           <h1 className="text-white text-sm md:text-base tracking-widest font-medium mb-4 uppercase">
             {hero.title}
