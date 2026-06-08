@@ -101,7 +101,7 @@ export function LookbookCarousel({ images, title }: Props) {
             <div
               key={i}
               data-slide
-              className="snap-start shrink-0 w-[82%] sm:w-[47%] lg:w-[31.5%]"
+              className="snap-start shrink-0 w-[88%] sm:w-[60%] lg:w-[40.5%]"
             >
               <div className="relative aspect-[3/4] bg-gray-50">
                 <Image
@@ -109,7 +109,7 @@ export function LookbookCarousel({ images, title }: Props) {
                   alt={title ? `${title} ${i + 1}` : `Lookbook ${i + 1}`}
                   fill
                   quality={60}
-                  sizes="(max-width: 640px) 82vw, (max-width: 1024px) 47vw, 32vw"
+                  sizes="(max-width: 640px) 88vw, (max-width: 1024px) 60vw, 41vw"
                   className="object-cover"
                 />
               </div>

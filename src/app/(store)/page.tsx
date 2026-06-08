@@ -80,14 +80,14 @@ export default async function HomePage() {
 
       {/* Best Sellers */}
       {featured.length > 0 && (
-        <section className="max-w-screen-xl mx-auto px-6 py-16">
-          <div className="flex items-center justify-between mb-8">
+        <section className="max-w-[1800px] mx-auto px-4 md:px-8 py-12">
+          <div className="flex items-center justify-between mb-6">
             <h2 className="text-xs tracking-widest font-medium uppercase">Best Sellers</h2>
             <Link href="/shop" className="text-xs tracking-widest text-gray-500 hover:text-black transition-colors uppercase">
               View all →
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
             {featured.map(product => (
               <ProductCard key={product.id} product={product} />
             ))}
@@ -104,7 +104,7 @@ export default async function HomePage() {
 
       {/* Community */}
       {community.length > 0 && (
-        <section className="max-w-screen-xl mx-auto px-6 pb-20">
+        <section className="max-w-[1800px] mx-auto px-4 md:px-8 pb-14">
           <LookbookCarousel title="Community" images={community} />
         </section>
       )}

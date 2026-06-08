@@ -21,12 +21,12 @@ export default async function LookbookPage() {
   const isEmpty = sections.every(s => s.images.length === 0)
 
   return (
-    <div className="max-w-screen-xl mx-auto px-6 py-12">
-      <h1 className="text-xs tracking-widest font-medium uppercase mb-10">Lookbook</h1>
+    <div className="max-w-[1800px] mx-auto px-4 md:px-8 py-8">
+      <h1 className="text-xs tracking-widest font-medium uppercase mb-6">Lookbook</h1>
       {isEmpty ? (
         <p className="text-center text-gray-400 text-xs tracking-widest uppercase py-20">Lookbook coming soon</p>
       ) : (
-        <div className="space-y-20">
+        <div className="space-y-14">
           {sections
             .filter(s => s.images.length > 0)
             .map((section, si) => (
