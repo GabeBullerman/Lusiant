@@ -1,15 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { ProductCard } from '@/components/store/ProductCard'
-import { getCollections } from '@/lib/collections'
+import { getCollections, getAllCollections } from '@/lib/collections'
 import { Product } from '@/lib/types'
 import Link from 'next/link'
 
-async function getProducts(collection?: string): Promise<Product[]> {
+async function getProducts(collection: string | undefined, includeSoldOut: boolean): Promise<Product[]> {
   try {
     const supabase = await createClient()
-    let query = supabase.from('products').select('*').eq('is_active', true)
+    let query = supabase.from('products').select('*')
+    if (!includeSoldOut) query = query.eq('is_active', true)
     if (collection) query = query.ilike('category', collection)
-    const { data } = await query.order('created_at', { ascending: false })
+    const { data } = await query
+      .order('is_active', { ascending: false })
+      .order('created_at', { ascending: false })
     return (data as Product[]) ?? []
   } catch {
     return []
@@ -19,44 +22,66 @@ async function getProducts(collection?: string): Promise<Product[]> {
 export default async function ShopPage({
   searchParams,
 }: {
-  searchParams: Promise<{ collection?: string }>
+  searchParams: Promise<{ collection?: string; soldout?: string }>
 }) {
-  const { collection } = await searchParams
-  const [products, collections] = await Promise.all([getProducts(collection), getCollections()])
+  const { collection, soldout } = await searchParams
+  const includeSoldOut = soldout === '1'
+
+  const [products, collections] = await Promise.all([
+    getProducts(collection, includeSoldOut),
+    includeSoldOut ? getAllCollections() : getCollections(),
+  ])
 
   const activeChip = (target?: string) =>
     (target ?? '').toLowerCase() === (collection ?? '').toLowerCase()
 
+  const buildHref = (col?: string, withSoldOut = includeSoldOut) => {
+    const params = new URLSearchParams()
+    if (col) params.set('collection', col)
+    if (withSoldOut) params.set('soldout', '1')
+    const qs = params.toString()
+    return `/shop${qs ? `?${qs}` : ''}`
+  }
+
   return (
     <div className="max-w-screen-xl mx-auto px-6 py-12">
-      <h1 className="text-xs tracking-widest font-medium uppercase mb-6">
-        {collection || 'Shop'}
-      </h1>
+      <h1 className="text-xs tracking-widest font-medium uppercase mb-6">{collection || 'Shop'}</h1>
 
-      {/* Collection filter chips */}
-      {collections.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-10">
-          <Link
-            href="/shop"
-            className={`px-4 py-1.5 text-xs tracking-widest uppercase border rounded-full transition-colors ${
-              activeChip(undefined) ? 'bg-black text-white border-black' : 'border-gray-200 hover:border-black'
-            }`}
-          >
-            All
-          </Link>
-          {collections.map(c => (
+      {/* Collection filter chips + sold-out toggle */}
+      <div className="flex flex-wrap items-center gap-2 mb-10">
+        {collections.length > 0 && (
+          <>
             <Link
-              key={c}
-              href={`/shop?collection=${encodeURIComponent(c)}`}
+              href={buildHref(undefined)}
               className={`px-4 py-1.5 text-xs tracking-widest uppercase border rounded-full transition-colors ${
-                activeChip(c) ? 'bg-black text-white border-black' : 'border-gray-200 hover:border-black'
+                activeChip(undefined) ? 'bg-black text-white border-black' : 'border-gray-200 hover:border-black'
               }`}
             >
-              {c}
+              All
             </Link>
-          ))}
-        </div>
-      )}
+            {collections.map(c => (
+              <Link
+                key={c}
+                href={buildHref(c)}
+                className={`px-4 py-1.5 text-xs tracking-widest uppercase border rounded-full transition-colors ${
+                  activeChip(c) ? 'bg-black text-white border-black' : 'border-gray-200 hover:border-black'
+                }`}
+              >
+                {c}
+              </Link>
+            ))}
+          </>
+        )}
+
+        <Link
+          href={buildHref(collection, !includeSoldOut)}
+          className={`ml-auto px-4 py-1.5 text-xs tracking-widest uppercase border rounded-full transition-colors ${
+            includeSoldOut ? 'bg-black text-white border-black' : 'border-gray-200 hover:border-black'
+          }`}
+        >
+          {includeSoldOut ? 'Hide sold out' : 'Show sold out'}
+        </Link>
+      </div>
 
       {products.length === 0 ? (
         <p className="text-center text-gray-400 text-xs tracking-widest uppercase py-20">

@@ -42,7 +42,7 @@ export function Navbar({ collections }: NavbarProps) {
         <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/30 to-transparent" />
       )}
 
-      <div className="relative max-w-screen-xl mx-auto px-6 flex items-center justify-between h-14">
+      <div className="relative w-full px-5 md:px-10 flex items-center justify-between h-14">
         {/* Left nav (desktop) */}
         <div className="hidden md:flex items-center gap-8 text-xs tracking-widest font-medium uppercase">
           <Link href="/" className="hover:opacity-60 transition-opacity">Home</Link>
