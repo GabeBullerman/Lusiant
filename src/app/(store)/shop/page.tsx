@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { ProductCard } from '@/components/store/ProductCard'
+import { ShopSearch } from './ShopSearch'
 import { getCollections, getAllCollections } from '@/lib/collections'
 import { Product } from '@/lib/types'
 import Link from 'next/link'
@@ -57,6 +58,8 @@ export default async function ShopPage({
   return (
     <div className="max-w-screen-xl mx-auto px-6 py-12">
       <h1 className="text-xs tracking-widest font-medium uppercase mb-6">{heading}</h1>
+
+      <ShopSearch />
 
       {/* Collection filter chips + sold-out toggle */}
       <div className="flex flex-wrap items-center gap-2 mb-10">

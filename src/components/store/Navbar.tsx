@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { ShoppingBag, Menu, X, ChevronDown, Search, User } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { ShoppingBag, Menu, X, ChevronDown, User } from 'lucide-react'
 import { useCart } from './CartContext'
 import { useState } from 'react'
 
@@ -18,17 +18,7 @@ export function Navbar({ collections }: NavbarProps) {
   const { totalItems, openCart } = useCart()
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileShopOpen, setMobileShopOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [query, setQuery] = useState('')
   const pathname = usePathname()
-  const router = useRouter()
-
-  function submitSearch(e: React.FormEvent) {
-    e.preventDefault()
-    const q = query.trim()
-    setSearchOpen(false)
-    if (q) router.push(`/shop?q=${encodeURIComponent(q)}`)
-  }
 
   // On the homepage the nav floats over the hero image (white text, no bar,
   // does not stick on scroll). Everywhere else it's a normal sticky white bar.
@@ -93,9 +83,6 @@ export function Navbar({ collections }: NavbarProps) {
 
         {/* Right */}
         <div className="flex items-center gap-5 text-xs tracking-widest font-medium uppercase">
-          <button onClick={() => setSearchOpen(o => !o)} aria-label="Search" className="hover:opacity-60 transition-opacity">
-            <Search size={18} />
-          </button>
           <Link href="/account" aria-label="Account" className="hover:opacity-60 transition-opacity">
             <User size={18} />
           </Link>
@@ -111,25 +98,6 @@ export function Navbar({ collections }: NavbarProps) {
           </button>
         </div>
       </div>
-
-      {/* Search bar */}
-      {searchOpen && (
-        <div className="relative bg-white text-black border-t border-gray-100 px-5 md:px-10 py-3">
-          <form onSubmit={submitSearch} className="max-w-screen-xl mx-auto flex items-center gap-3">
-            <Search size={16} className="text-gray-400 shrink-0" />
-            <input
-              autoFocus
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Search products…"
-              className="flex-1 bg-transparent text-sm focus:outline-none py-1 tracking-wide"
-            />
-            <button type="button" onClick={() => setSearchOpen(false)} aria-label="Close search" className="text-gray-400 hover:text-black transition-colors">
-              <X size={16} />
-            </button>
-          </form>
-        </div>
-      )}
 
       {/* Mobile menu */}
       {menuOpen && (
