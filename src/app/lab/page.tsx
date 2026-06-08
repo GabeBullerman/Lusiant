@@ -9,18 +9,20 @@ const InkField = dynamic(() => import('@/components/lab/InkField'), { ssr: false
 export default function LabPage() {
   return (
     <main className="bg-white text-black">
-      {/* 1 — SVG line-draw (the porcelain design) */}
-      <section className="min-h-screen flex flex-col items-center justify-center px-6 relative">
-        <p className="absolute top-8 left-8 text-[11px] tracking-widest uppercase text-gray-300">
+      {/* 1 — SVG line-draw (the porcelain design) spanning the whole section */}
+      <section className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-6 bg-white">
+        <p className="absolute top-8 left-8 z-10 text-[11px] tracking-widest uppercase text-gray-300">
           01 — Line draw (SVG)
         </p>
         <PorcelainDraw />
-        <h1 className="mt-10 text-sm md:text-base tracking-[0.4em] font-medium uppercase">
-          Shattered Porcelain
-        </h1>
-        <p className="mt-3 text-[11px] tracking-widest uppercase text-gray-400">
-          Placeholder — swap in the real artwork
-        </p>
+        <div className="relative z-10 text-center pointer-events-none">
+          <h1 className="text-sm md:text-base tracking-[0.4em] font-medium uppercase">
+            Shattered Porcelain
+          </h1>
+          <p className="mt-3 text-[11px] tracking-widest uppercase text-gray-400">
+            Placeholder — swap in the real artwork
+          </p>
+        </div>
       </section>
 
       {/* 2 — Three.js shader showpiece */}
