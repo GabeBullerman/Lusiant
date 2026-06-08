@@ -1,70 +1,125 @@
 'use client'
 
 import Link from 'next/link'
-import { ShoppingBag, Menu, X } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { ShoppingBag, Menu, X, ChevronDown } from 'lucide-react'
 import { useCart } from './CartContext'
 import { useState } from 'react'
 
 interface NavbarProps {
-  announcement?: { text: string; enabled: boolean }
+  collections: string[]
 }
 
-export function Navbar({ announcement }: NavbarProps) {
+function collectionHref(c: string) {
+  return `/shop?collection=${encodeURIComponent(c)}`
+}
+
+export function Navbar({ collections }: NavbarProps) {
   const { totalItems, openCart } = useCart()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileShopOpen, setMobileShopOpen] = useState(false)
+  const pathname = usePathname()
+
+  // On the homepage the nav floats over the hero image (white text, no bar,
+  // does not stick on scroll). Everywhere else it's a normal sticky white bar.
+  const overlay = pathname === '/'
+
+  const navClass = overlay
+    ? 'absolute top-0 inset-x-0 z-30 text-white'
+    : 'sticky top-0 inset-x-0 z-30 bg-white border-b border-gray-100 text-black'
+
+  const badgeClass = overlay ? 'bg-white text-black' : 'bg-black text-white'
+
+  function closeMenu() {
+    setMenuOpen(false)
+    setMobileShopOpen(false)
+  }
 
   return (
-    <>
-      {announcement?.enabled && (
-        <div className="bg-black text-white text-center text-xs py-2 tracking-widest font-medium">
-          {announcement.text}
-        </div>
+    <nav className={navClass}>
+      {/* Subtle gradient for legibility when floating over the hero */}
+      {overlay && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/30 to-transparent" />
       )}
 
-      <nav className="sticky top-0 z-30 bg-white border-b border-gray-100">
-        <div className="max-w-screen-xl mx-auto px-6 flex items-center justify-between h-14">
-          {/* Left nav */}
-          <div className="hidden md:flex items-center gap-8 text-xs tracking-widest font-medium uppercase">
-            <Link href="/" className="hover:opacity-60 transition-opacity">Home</Link>
-            <Link href="/shop" className="hover:opacity-60 transition-opacity">Shop</Link>
-            <Link href="/lookbook" className="hover:opacity-60 transition-opacity">Lookbook</Link>
+      <div className="relative max-w-screen-xl mx-auto px-6 flex items-center justify-between h-14">
+        {/* Left nav (desktop) */}
+        <div className="hidden md:flex items-center gap-8 text-xs tracking-widest font-medium uppercase">
+          <Link href="/" className="hover:opacity-60 transition-opacity">Home</Link>
+
+          {/* Shop dropdown */}
+          <div className="relative group">
+            <Link href="/shop" className="flex items-center gap-1 hover:opacity-60 transition-opacity">
+              Shop <ChevronDown size={12} className="mt-px" />
+            </Link>
+            <div className="absolute left-0 top-full pt-3 opacity-0 invisible translate-y-1 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 transition-all duration-150">
+              <div className="bg-white text-black min-w-48 py-2 shadow-lg border border-gray-100">
+                <Link href="/shop" className="block px-4 py-2 text-xs tracking-widest hover:bg-gray-50">All</Link>
+                {collections.map(c => (
+                  <Link
+                    key={c}
+                    href={collectionHref(c)}
+                    className="block px-4 py-2 text-xs tracking-widest hover:bg-gray-50 uppercase"
+                  >
+                    {c}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Mobile menu button */}
-          <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-            {menuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-
-          {/* Logo */}
-          <Link href="/" className="absolute left-1/2 -translate-x-1/2 font-bold text-xl tracking-[0.3em]">
-            LS&NT
-          </Link>
-
-          {/* Right */}
-          <div className="flex items-center gap-6 text-xs tracking-widest font-medium uppercase">
-            <Link href="/contact" className="hidden md:block hover:opacity-60 transition-opacity">Contact</Link>
-            <button onClick={openCart} className="relative flex items-center gap-1 hover:opacity-60 transition-opacity">
-              <ShoppingBag size={18} />
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-              <span className="hidden md:inline">Cart ({totalItems})</span>
-            </button>
-          </div>
+          <Link href="/lookbook" className="hover:opacity-60 transition-opacity">Lookbook</Link>
         </div>
 
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 px-6 py-4 flex flex-col gap-4 text-sm tracking-widest uppercase">
-            <Link href="/" onClick={() => setMenuOpen(false)}>Home</Link>
-            <Link href="/shop" onClick={() => setMenuOpen(false)}>Shop</Link>
-            <Link href="/lookbook" onClick={() => setMenuOpen(false)}>Lookbook</Link>
-            <Link href="/contact" onClick={() => setMenuOpen(false)}>Contact</Link>
-          </div>
-        )}
-      </nav>
-    </>
+        {/* Mobile menu button */}
+        <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+          {menuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+
+        {/* Logo */}
+        <Link href="/" className="absolute left-1/2 -translate-x-1/2 font-bold text-xl tracking-[0.3em]">
+          LS&NT
+        </Link>
+
+        {/* Right */}
+        <div className="flex items-center gap-6 text-xs tracking-widest font-medium uppercase">
+          <Link href="/contact" className="hidden md:block hover:opacity-60 transition-opacity">Contact Us</Link>
+          <button onClick={openCart} className="relative flex items-center gap-1 hover:opacity-60 transition-opacity">
+            <ShoppingBag size={18} />
+            {totalItems > 0 && (
+              <span className={`absolute -top-2 -right-2 ${badgeClass} text-[10px] rounded-full w-4 h-4 flex items-center justify-center`}>
+                {totalItems}
+              </span>
+            )}
+            <span className="hidden md:inline">Cart ({totalItems})</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="md:hidden relative bg-white text-black border-t border-gray-100 px-6 py-4 flex flex-col gap-1 text-sm tracking-widest uppercase">
+          <Link href="/" onClick={closeMenu} className="py-2">Home</Link>
+
+          <button
+            onClick={() => setMobileShopOpen(v => !v)}
+            className="py-2 flex items-center justify-between"
+          >
+            Shop <ChevronDown size={14} className={`transition-transform ${mobileShopOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {mobileShopOpen && (
+            <div className="pl-4 flex flex-col gap-1 text-xs">
+              <Link href="/shop" onClick={closeMenu} className="py-1.5">All</Link>
+              {collections.map(c => (
+                <Link key={c} href={collectionHref(c)} onClick={closeMenu} className="py-1.5">{c}</Link>
+              ))}
+            </div>
+          )}
+
+          <Link href="/lookbook" onClick={closeMenu} className="py-2">Lookbook</Link>
+          <Link href="/contact" onClick={closeMenu} className="py-2">Contact Us</Link>
+        </div>
+      )}
+    </nav>
   )
 }

@@ -24,7 +24,7 @@ interface FormData {
 
 const PRESET_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', '38']
 
-export function ProductForm({ product }: { product?: Product }) {
+export function ProductForm({ product, collections = [] }: { product?: Product; collections?: string[] }) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -141,12 +141,21 @@ export function ProductForm({ product }: { product?: Product }) {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1.5">Category</label>
+            <label className="block text-xs text-gray-500 mb-1.5">Collection</label>
             <input
               {...register('category')}
+              list="collection-options"
               className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-black"
-              placeholder="denim, tops, accessories..."
+              placeholder="Pick or type a collection…"
             />
+            <datalist id="collection-options">
+              {collections.map(c => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+            <p className="text-xs text-gray-400 mt-1">
+              Products sharing a collection appear together under Shop in the nav. Type a new name to create a collection.
+            </p>
           </div>
 
           <div className="col-span-2">
