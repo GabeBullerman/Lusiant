@@ -24,26 +24,40 @@ export async function proxy(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  let isAdmin = false
+  if (user) {
+    const { data } = await supabase.rpc('is_admin')
+    isAdmin = data === true
+  }
+  const path = request.nextUrl.pathname
 
-  // Protect all /admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
+  const redirectTo = (pathname: string) => {
+    const url = request.nextUrl.clone()
+    url.pathname = pathname
+    return NextResponse.redirect(url)
   }
 
-  // Redirect logged-in users away from login page
-  if (request.nextUrl.pathname === '/login' && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/admin'
-    return NextResponse.redirect(url)
+  // Admin area — must be signed in AND have the admin role
+  if (path.startsWith('/admin')) {
+    if (!user) return redirectTo('/login')
+    if (!isAdmin) return redirectTo('/')
+  }
+
+  // Admin login page — send signed-in admins straight to the dashboard
+  if (path === '/login' && user && isAdmin) {
+    return redirectTo('/admin')
+  }
+
+  // Customer account area — must be signed in (login/register are public)
+  if (path.startsWith('/account')) {
+    const isAuthPage = path === '/account/login' || path === '/account/register'
+    if (!user && !isAuthPage) return redirectTo('/account/login')
+    if (user && isAuthPage) return redirectTo('/account')
   }
 
   return supabaseResponse
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/login'],
+  matcher: ['/admin/:path*', '/login', '/account/:path*'],
 }

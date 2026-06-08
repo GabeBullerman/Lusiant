@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ShoppingBag, Menu, X, ChevronDown, Search } from 'lucide-react'
+import { ShoppingBag, Menu, X, ChevronDown, Search, User } from 'lucide-react'
 import { useCart } from './CartContext'
 import { useState } from 'react'
 
@@ -96,6 +96,9 @@ export function Navbar({ collections }: NavbarProps) {
           <button onClick={() => setSearchOpen(o => !o)} aria-label="Search" className="hover:opacity-60 transition-opacity">
             <Search size={18} />
           </button>
+          <Link href="/account" aria-label="Account" className="hover:opacity-60 transition-opacity">
+            <User size={18} />
+          </Link>
           <Link href="/contact" className="hidden md:block hover:opacity-60 transition-opacity">Contact Us</Link>
           <button onClick={openCart} className="relative flex items-center gap-1 hover:opacity-60 transition-opacity">
             <ShoppingBag size={18} />
