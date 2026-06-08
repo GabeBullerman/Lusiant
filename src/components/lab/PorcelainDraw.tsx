@@ -47,32 +47,31 @@ export function PorcelainDraw() {
     if (!svg) return
     const paths = Array.from(svg.querySelectorAll('path'))
 
+    // Start hidden.
     paths.forEach(p => {
       const len = p.getTotalLength()
       p.style.transition = 'none'
       p.style.strokeDasharray = `${len}`
       p.style.strokeDashoffset = `${len}`
     })
-    void svg.getBoundingClientRect()
 
-    const draw = () => {
-      paths.forEach((p, i) => {
-        p.style.transition = `stroke-dashoffset 1s cubic-bezier(0.65,0,0.35,1) ${i * 0.09}s`
-        p.style.strokeDashoffset = '0'
+    // Draw on the next two frames (after the hidden state has painted), so the
+    // transition reliably animates regardless of scroll position.
+    let raf1 = 0
+    let raf2 = 0
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        paths.forEach((p, i) => {
+          p.style.transition = `stroke-dashoffset 1s cubic-bezier(0.65,0,0.35,1) ${i * 0.09}s`
+          p.style.strokeDashoffset = '0'
+        })
       })
-    }
+    })
 
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          draw()
-          io.disconnect()
-        }
-      },
-      { threshold: 0.2 }
-    )
-    io.observe(svg)
-    return () => io.disconnect()
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+    }
   }, [key])
 
   return (
