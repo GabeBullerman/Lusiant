@@ -85,7 +85,7 @@ export function LookbookCarousel({ images, title }: Props) {
 
   return (
     <section className="group/carousel" onPointerMove={markInteract}>
-      {title && <h2 className="text-sm tracking-widest font-medium uppercase mb-6">{title}</h2>}
+      {title && <h2 className="text-2xl md:text-3xl tracking-[0.2em] font-medium uppercase mb-8 text-center">{title}</h2>}
 
       <div className="relative">
         {/* Track */}
