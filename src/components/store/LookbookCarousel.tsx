@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { blurURL } from '@/lib/blur'
 
 interface Props {
   images: string[]
@@ -109,6 +110,8 @@ export function LookbookCarousel({ images, title }: Props) {
                   alt={title ? `${title} ${i + 1}` : `Lookbook ${i + 1}`}
                   fill
                   quality={60}
+                  placeholder="blur"
+                  blurDataURL={blurURL()}
                   sizes="(max-width: 640px) 88vw, (max-width: 1024px) 60vw, 41vw"
                   className="object-cover"
                 />

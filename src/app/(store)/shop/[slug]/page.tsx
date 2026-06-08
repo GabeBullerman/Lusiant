@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { Product } from '@/lib/types'
 import { useCart } from '@/components/store/CartContext'
+import { blurURL } from '@/lib/blur'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -41,7 +42,7 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   }
 
   return (
-    <div className="max-w-screen-xl mx-auto px-6 py-12">
+    <div className="max-w-screen-xl mx-auto px-6 pt-12 pb-28 md:pb-12">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
         {/* Images */}
         <div className="space-y-3">
@@ -51,8 +52,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
                 src={product.images[activeImage]}
                 alt={product.name}
                 fill
-                className="object-cover"
                 priority
+                placeholder="blur"
+                blurDataURL={blurURL()}
+                className="object-cover"
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
             )}
@@ -121,6 +124,18 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             <p className="text-sm text-red-500 tracking-wide">This item is sold out</p>
           )}
         </div>
+      </div>
+
+      {/* Mobile sticky add-to-cart bar */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-gray-100 px-4 py-3 flex items-center gap-3">
+        <span className="text-sm font-medium whitespace-nowrap">${product.price.toFixed(2)}</span>
+        <button
+          onClick={handleAddToCart}
+          disabled={product.sizes.length > 0 && !selectedSize}
+          className="flex-1 bg-black text-white py-3 text-xs tracking-widest font-medium disabled:opacity-40"
+        >
+          {added ? 'ADDED ✓' : product.sizes.length > 0 && !selectedSize ? 'SELECT A SIZE' : 'ADD TO CART'}
+        </button>
       </div>
     </div>
   )

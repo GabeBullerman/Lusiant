@@ -1,5 +1,6 @@
 import { CartProvider } from '@/components/store/CartContext'
 import { CartSlider } from '@/components/store/CartSlider'
+import { ClubTab } from '@/components/store/ClubTab'
 import { Navbar } from '@/components/store/Navbar'
 import { Footer } from '@/components/store/Footer'
 import { createClient } from '@/lib/supabase/server'
@@ -38,6 +39,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       </div>
 
       <CartSlider />
+      <ClubTab />
 
       <Footer />
     </CartProvider>

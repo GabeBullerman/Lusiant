@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Product } from '@/lib/types'
+import { blurURL } from '@/lib/blur'
 
 export function ProductCard({ product }: { product: Product }) {
   const image = product.images[0]
@@ -15,6 +16,8 @@ export function ProductCard({ product }: { product: Product }) {
               src={image}
               alt={product.name}
               fill
+              placeholder="blur"
+              blurDataURL={blurURL()}
               className={`object-cover transition-opacity duration-500 ${secondImage ? 'group-hover:opacity-0' : ''}`}
               sizes="(max-width: 768px) 50vw, 33vw"
             />

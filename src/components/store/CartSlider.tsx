@@ -4,6 +4,7 @@ import { useCart } from './CartContext'
 import { X, Minus, Plus, ShoppingBag } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { blurURL } from '@/lib/blur'
 
 export function CartSlider() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalPrice } = useCart()
@@ -43,7 +44,7 @@ export function CartSlider() {
                 <div key={`${item.product.id}-${item.size}`} className="flex gap-4">
                   <div className="w-20 h-24 bg-gray-50 relative flex-shrink-0">
                     {item.product.images[0] && (
-                      <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
+                      <Image src={item.product.images[0]} alt={item.product.name} fill placeholder="blur" blurDataURL={blurURL()} sizes="80px" className="object-cover" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
 import { CartItem, Product } from '@/lib/types'
 
 interface CartContextType {
@@ -18,9 +18,29 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | null>(null)
 
+const STORAGE_KEY = 'lusiant_cart'
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [isOpen, setIsOpen] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
+
+  // Load persisted cart once on mount.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY)
+      if (saved) setItems(JSON.parse(saved))
+    } catch {}
+    setHydrated(true)
+  }, [])
+
+  // Persist on every change (after the initial load).
+  useEffect(() => {
+    if (!hydrated) return
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+    } catch {}
+  }, [items, hydrated])
 
   const addItem = useCallback((product: Product, size: string) => {
     setItems(prev => {
