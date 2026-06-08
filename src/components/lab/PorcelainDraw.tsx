@@ -19,33 +19,47 @@ const CRACKS = [
 ]
 
 export function PorcelainDraw() {
-  const ref = useRef<SVGSVGElement>(null)
-  const [drawn, setDrawn] = useState(false)
+  const svgRef = useRef<SVGSVGElement>(null)
   const [key, setKey] = useState(0)
 
-  // Draw when it scrolls into view
   useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const io = new IntersectionObserver(
-      ([e]) => e.isIntersecting && setDrawn(true),
-      { threshold: 0.4 }
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
+    const svg = svgRef.current
+    if (!svg) return
+    const paths = Array.from(svg.querySelectorAll('path'))
 
-  function replay() {
-    setDrawn(false)
-    setKey(k => k + 1)
-    // next frame, draw again
-    requestAnimationFrame(() => requestAnimationFrame(() => setDrawn(true)))
-  }
+    // Start hidden: dash = full length, offset = full length.
+    paths.forEach(p => {
+      const len = p.getTotalLength()
+      p.style.transition = 'none'
+      p.style.strokeDasharray = `${len}`
+      p.style.strokeDashoffset = `${len}`
+    })
+    void svg.getBoundingClientRect() // force reflow so the start state sticks
+
+    const draw = () => {
+      paths.forEach((p, i) => {
+        p.style.transition = `stroke-dashoffset 1.1s cubic-bezier(0.65,0,0.35,1) ${i * 0.18}s`
+        p.style.strokeDashoffset = '0'
+      })
+    }
+
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          draw()
+          io.disconnect()
+        }
+      },
+      { threshold: 0.3 }
+    )
+    io.observe(svg)
+    return () => io.disconnect()
+  }, [key])
 
   return (
     <div className="relative flex flex-col items-center">
       <svg
-        ref={ref}
+        ref={svgRef}
         key={key}
         viewBox="0 0 300 300"
         className="w-[min(70vw,460px)] h-auto"
@@ -56,22 +70,12 @@ export function PorcelainDraw() {
         strokeLinejoin="round"
       >
         {CRACKS.map((d, i) => (
-          <path
-            key={i}
-            d={d}
-            pathLength={1}
-            style={{
-              strokeDasharray: 1,
-              strokeDashoffset: drawn ? 0 : 1,
-              transition: 'stroke-dashoffset 1.1s cubic-bezier(0.65,0,0.35,1)',
-              transitionDelay: `${i * 0.18}s`,
-            }}
-          />
+          <path key={i} d={d} />
         ))}
       </svg>
 
       <button
-        onClick={replay}
+        onClick={() => setKey(k => k + 1)}
         className="mt-8 text-[11px] tracking-widest uppercase text-gray-400 hover:text-black transition-colors"
       >
         ↺ Replay
