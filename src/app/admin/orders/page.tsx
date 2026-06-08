@@ -13,22 +13,34 @@ const statusColors: Record<string, string> = {
 interface Filters {
   status?: string
   sort?: string
+  q?: string
+  from?: string
+  to?: string
 }
 
-async function getOrders({ status, sort }: Filters): Promise<Order[]> {
+async function getOrders({ status, sort, q, from, to }: Filters): Promise<Order[]> {
   const supabase = await createClient()
-  let q = supabase.from('orders').select('*')
+  let query = supabase.from('orders').select('*')
 
-  if (status) q = q.eq('status', status)
+  if (status) query = query.eq('status', status)
 
-  switch (sort) {
-    case 'oldest': q = q.order('created_at', { ascending: true }); break
-    case 'total_desc': q = q.order('total', { ascending: false }); break
-    case 'total_asc': q = q.order('total', { ascending: true }); break
-    default: q = q.order('created_at', { ascending: false })
+  if (q) {
+    // strip characters that have meaning in the PostgREST or() filter
+    const term = q.replace(/[,()]/g, '').trim()
+    if (term) query = query.or(`customer_email.ilike.%${term}%,customer_name.ilike.%${term}%`)
   }
 
-  const { data } = await q
+  if (from) query = query.gte('created_at', from)
+  if (to) query = query.lte('created_at', `${to}T23:59:59.999`)
+
+  switch (sort) {
+    case 'oldest': query = query.order('created_at', { ascending: true }); break
+    case 'total_desc': query = query.order('total', { ascending: false }); break
+    case 'total_asc': query = query.order('total', { ascending: true }); break
+    default: query = query.order('created_at', { ascending: false })
+  }
+
+  const { data } = await query
   return (data as Order[]) ?? []
 }
 
@@ -39,7 +51,7 @@ export default async function AdminOrdersPage({
 }) {
   const filters = await searchParams
   const orders = await getOrders(filters)
-  const isFiltered = Boolean(filters.status || filters.sort)
+  const isFiltered = Boolean(filters.status || filters.sort || filters.q || filters.from || filters.to)
 
   return (
     <div className="p-8">
