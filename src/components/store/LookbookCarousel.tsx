@@ -12,8 +12,20 @@ interface Props {
 export function LookbookCarousel({ images, title }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
+  const [canScroll, setCanScroll] = useState(false)
   const pausedRef = useRef(false)
   const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Detect whether the track actually overflows (more than fits in one view)
+  useEffect(() => {
+    const el = scrollerRef.current
+    if (!el) return
+    const check = () => setCanScroll(el.scrollWidth > el.clientWidth + 4)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [images.length])
 
   const updateProgress = useCallback(() => {
     const el = scrollerRef.current
@@ -56,14 +68,15 @@ export function LookbookCarousel({ images, title }: Props) {
     [slideWidth]
   )
 
-  // Auto-advance (respects reduced-motion + pause-on-interaction)
+  // Auto-advance (only when scrollable; respects reduced-motion + pause-on-interaction)
   useEffect(() => {
+    if (!canScroll) return
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const id = setInterval(() => {
       if (!pausedRef.current) advance(1)
     }, 3500)
     return () => clearInterval(id)
-  }, [advance])
+  }, [advance, canScroll])
 
   function seek(e: React.MouseEvent<HTMLDivElement>) {
     const el = scrollerRef.current
@@ -118,42 +131,48 @@ export function LookbookCarousel({ images, title }: Props) {
         </div>
 
         {/* Arrows */}
-        <button
-          type="button"
-          aria-label="Previous"
-          onClick={() => {
-            advance(-1)
-            pause()
-            scheduleResume()
-          }}
-          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/85 hover:bg-white text-black w-9 h-9 flex items-center justify-center rounded-full shadow-sm transition-opacity opacity-0 group-hover/carousel:opacity-100 disabled:opacity-0"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <button
-          type="button"
-          aria-label="Next"
-          onClick={() => {
-            advance(1)
-            pause()
-            scheduleResume()
-          }}
-          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/85 hover:bg-white text-black w-9 h-9 flex items-center justify-center rounded-full shadow-sm transition-opacity opacity-0 group-hover/carousel:opacity-100"
-        >
-          <ChevronRight size={18} />
-        </button>
+        {canScroll && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous"
+              onClick={() => {
+                advance(-1)
+                pause()
+                scheduleResume()
+              }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/85 hover:bg-white text-black w-9 h-9 flex items-center justify-center rounded-full shadow-sm transition-opacity opacity-0 group-hover/carousel:opacity-100"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              aria-label="Next"
+              onClick={() => {
+                advance(1)
+                pause()
+                scheduleResume()
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/85 hover:bg-white text-black w-9 h-9 flex items-center justify-center rounded-full shadow-sm transition-opacity opacity-0 group-hover/carousel:opacity-100"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </>
+        )}
       </div>
 
-      {/* Progress bar (click to seek) */}
-      <div
-        onClick={seek}
-        className="mt-4 h-1 bg-gray-200 rounded-full cursor-pointer overflow-hidden"
-      >
+      {/* Progress bar (click to seek) — only when there is more to scroll */}
+      {canScroll && (
         <div
-          className="h-full bg-black rounded-full transition-[width] duration-150 ease-out"
-          style={{ width: `${Math.max(8, progress * 100)}%` }}
-        />
-      </div>
+          onClick={seek}
+          className="mt-4 h-1 bg-gray-200 rounded-full cursor-pointer overflow-hidden"
+        >
+          <div
+            className="h-full bg-black rounded-full transition-[width] duration-150 ease-out"
+            style={{ width: `${Math.max(8, progress * 100)}%` }}
+          />
+        </div>
+      )}
     </section>
   )
 }
