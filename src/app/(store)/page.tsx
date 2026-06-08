@@ -65,7 +65,7 @@ export default async function HomePage() {
           </h1>
           <Link
             href={hero.button_href}
-            className="inline-block border border-white text-white text-xs tracking-widest px-6 py-3 hover:bg-white hover:text-black transition-colors"
+            className="inline-block bg-white text-black border border-white text-xs tracking-widest px-6 py-3 hover:bg-transparent hover:text-white transition-colors"
           >
             {hero.button_text}
           </Link>
