@@ -1,6 +1,27 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Policy } from '@/lib/policy-content'
 
+export interface StoreMode {
+  /** When false, checkout is a visual-only demo: the form is disabled and no
+   *  orders/payments are processed. Defaults to false (safe). */
+  orders_enabled: boolean
+}
+
+export async function getStoreMode(): Promise<StoreMode> {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'store_mode')
+      .single()
+    const v = data?.value as { orders_enabled?: unknown } | undefined
+    return { orders_enabled: v?.orders_enabled === true }
+  } catch {
+    return { orders_enabled: false }
+  }
+}
+
 /** Community gallery images (homepage), managed in Admin → Community. */
 export async function getCommunity(): Promise<string[]> {
   try {

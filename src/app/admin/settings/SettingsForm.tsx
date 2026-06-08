@@ -9,11 +9,13 @@ import { useRouter } from 'next/navigation'
 interface Props {
   hero: HeroSetting
   announcement: AnnouncementSetting
+  ordersEnabled: boolean
 }
 
-export function SettingsForm({ hero: initialHero, announcement: initialAnnouncement }: Props) {
+export function SettingsForm({ hero: initialHero, announcement: initialAnnouncement, ordersEnabled: initialOrders }: Props) {
   const [hero, setHero] = useState<HeroSetting>(initialHero)
   const [announcement, setAnnouncement] = useState<AnnouncementSetting>(initialAnnouncement)
+  const [ordersEnabled, setOrdersEnabled] = useState<boolean>(initialOrders)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const router = useRouter()
@@ -24,6 +26,7 @@ export function SettingsForm({ hero: initialHero, announcement: initialAnnouncem
     await Promise.all([
       supabase.from('site_settings').upsert({ key: 'hero', value: hero, updated_at: new Date().toISOString() }),
       supabase.from('site_settings').upsert({ key: 'announcement', value: announcement, updated_at: new Date().toISOString() }),
+      supabase.from('site_settings').upsert({ key: 'store_mode', value: { orders_enabled: ordersEnabled }, updated_at: new Date().toISOString() }),
     ])
     setSaving(false)
     setSaved(true)
@@ -33,6 +36,25 @@ export function SettingsForm({ hero: initialHero, announcement: initialAnnouncem
 
   return (
     <div className="space-y-8">
+      {/* Checkout / orders */}
+      <section className="bg-white border border-gray-100 rounded p-6 space-y-4">
+        <h2 className="text-sm font-medium tracking-wide">Checkout</h2>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={ordersEnabled}
+            onChange={e => setOrdersEnabled(e.target.checked)}
+            className="w-4 h-4 mt-0.5"
+          />
+          <span className="text-sm">
+            Accept live orders
+            <span className="block text-xs text-gray-400 mt-0.5">
+              Off = checkout is a visual-only demo (form disabled, no payments taken). On = real embedded Stripe checkout.
+            </span>
+          </span>
+        </label>
+      </section>
+
       {/* Announcement bar */}
       <section className="bg-white border border-gray-100 rounded p-6 space-y-4">
         <h2 className="text-sm font-medium tracking-wide">Announcement Bar</h2>

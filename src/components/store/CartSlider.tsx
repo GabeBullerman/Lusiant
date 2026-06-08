@@ -3,25 +3,15 @@
 import { useCart } from './CartContext'
 import { X, Minus, Plus, ShoppingBag } from 'lucide-react'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export function CartSlider() {
   const { items, isOpen, closeCart, removeItem, updateQuantity, totalPrice } = useCart()
-  const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
-  async function handleCheckout() {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
-      })
-      const { url } = await res.json()
-      if (url) window.location.href = url
-    } finally {
-      setLoading(false)
-    }
+  function handleCheckout() {
+    closeCart()
+    router.push('/checkout')
   }
 
   return (
@@ -81,10 +71,9 @@ export function CartSlider() {
               <p className="text-xs text-gray-400">Shipping calculated at checkout</p>
               <button
                 onClick={handleCheckout}
-                disabled={loading}
-                className="w-full bg-black text-white py-4 text-sm tracking-widest font-medium hover:bg-gray-900 transition-colors disabled:opacity-50"
+                className="w-full bg-black text-white py-4 text-sm tracking-widest font-medium hover:bg-gray-900 transition-colors"
               >
-                {loading ? 'LOADING...' : 'CHECKOUT'}
+                CHECKOUT
               </button>
             </div>
           </>
