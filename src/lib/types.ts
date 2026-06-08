@@ -72,3 +72,29 @@ export interface AnnouncementSetting {
   text: string
   enabled: boolean
 }
+
+export interface LookbookSection {
+  title: string
+  images: string[]
+}
+
+// Normalizes the `lookbook` site_setting value, supporting both the new
+// sectioned format and the legacy flat `[{ url }]` / `string[]` formats.
+export function normalizeLookbook(value: unknown): LookbookSection[] {
+  if (!Array.isArray(value)) return []
+  if (value.length === 0) return []
+
+  // New format: array of { title, images }
+  if (value.every(v => v && typeof v === 'object' && 'images' in v)) {
+    return (value as LookbookSection[]).map(s => ({
+      title: typeof s.title === 'string' ? s.title : '',
+      images: Array.isArray(s.images) ? s.images.filter(u => typeof u === 'string') : [],
+    }))
+  }
+
+  // Legacy flat format: [{ url }] or ["url", ...] -> single untitled section
+  const images = (value as unknown[])
+    .map(v => (typeof v === 'string' ? v : v && typeof v === 'object' && 'url' in v ? (v as { url: unknown }).url : null))
+    .filter((u): u is string => typeof u === 'string')
+  return images.length ? [{ title: '', images }] : []
+}

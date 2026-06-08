@@ -13,13 +13,17 @@ interface ImageUploadProps {
 
 export function ImageUpload({ value, onChange, bucket = 'products' }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleFiles = useCallback(async (files: FileList | null) => {
     if (!files?.length) return
     setUploading(true)
+    setError(null)
 
     const supabase = createClient()
     const urls: string[] = []
+    let failed = 0
+    let lastError = ''
 
     for (const file of Array.from(files)) {
       const ext = file.name.split('.').pop()
@@ -28,10 +32,14 @@ export function ImageUpload({ value, onChange, bucket = 'products' }: ImageUploa
       if (!error) {
         const { data } = supabase.storage.from(bucket).getPublicUrl(path)
         urls.push(data.publicUrl)
+      } else {
+        failed++
+        lastError = error.message
       }
     }
 
-    onChange([...value, ...urls])
+    if (urls.length) onChange([...value, ...urls])
+    if (failed) setError(`${failed} image${failed === 1 ? '' : 's'} failed to upload: ${lastError}`)
     setUploading(false)
   }, [value, onChange, bucket])
 
@@ -68,6 +76,10 @@ export function ImageUpload({ value, onChange, bucket = 'products' }: ImageUploa
           disabled={uploading}
         />
       </label>
+
+      {error && (
+        <p className="text-xs text-red-600">{error}</p>
+      )}
 
       {/* Preview grid */}
       {value.length > 0 && (
