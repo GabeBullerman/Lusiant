@@ -4,70 +4,57 @@ import { useEffect, useRef, useState } from 'react'
 
 interface Props {
   opacity?: number
+  /** Reveal duration in ms. Default 5500. */
   duration?: number
   /** Extra zoom on top of cover-fill. 1 = just cover the section. Default 1. */
   scale?: number
   className?: string
 }
 
+// Diagonal sweep: the region left of a slanted leading edge is revealed.
+// Points: topLeft, topLead, bottomLead, bottomLeft (kept in the same order so
+// the browser interpolates each vertex smoothly between the two states).
+const HIDDEN = 'polygon(-50% 0%, -20% 0%, -50% 100%, -50% 100%)'
+const SHOWN = 'polygon(-50% 0%, 150% 0%, 120% 100%, -50% 100%)'
+
 /**
- * Animated porcelain floral line-art that draws itself in on scroll into view.
- * Centerline-traced so each line is a single pen-stroke (no outline retrace).
+ * Faithful porcelain floral (black-on-transparent raster, fills and all) that
+ * wipes itself in diagonally on scroll into view. The art is generated from the
+ * source .ai by scripts/gen-porcelain-art.mjs.
  */
 export function PorcelainBackdrop({
   opacity = 1,
-  duration = 11000,
+  duration = 5500,
   scale = 1,
   className = '',
 }: Props) {
-  const svgRef = useRef<SVGSVGElement>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
   const drawnRef = useRef(false)
-  const [viewBox, setViewBox] = useState('0 0 1125 1500')
-  const [inner, setInner] = useState('')
+  const [reduced, setReduced] = useState(false)
 
-  // Fetch SVG on mount, extract its viewBox + inner markup (the path)
   useEffect(() => {
-    fetch('/porcelain-pattern.svg')
-      .then(r => r.text())
-      .then(text => {
-        const vb = text.match(/viewBox="([^"]+)"/)?.[1]
-        if (vb) setViewBox(vb)
-        const innerMarkup = text.replace(/<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '')
-        setInner(innerMarkup)
-      })
-      .catch(console.error)
-  }, [])
+    const img = imgRef.current
+    if (!img) return
 
-  // Animate once the path is in the DOM
-  useEffect(() => {
-    const svg = svgRef.current
-    if (!svg || !inner) return
-
-    const path = svg.querySelector('path') as SVGPathElement | null
-    if (!path) return
-
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const len = path.getTotalLength()
-
-    path.style.strokeDasharray = String(len)
-    path.style.strokeDashoffset = reduced ? '0' : String(len)
-    if (reduced) return
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) {
+      setReduced(true)
+      return
+    }
 
     const draw = () => {
       if (drawnRef.current) return
       drawnRef.current = true
-      // setTimeout (not rAF) so it still fires in a backgrounded tab, and a
-      // short delay lets the primed offset commit before the transition.
+      // setTimeout (not rAF) so it still fires in a backgrounded tab; the short
+      // delay lets the primed HIDDEN clip commit before the transition starts.
       setTimeout(() => {
-        path.style.transition = `stroke-dashoffset ${duration}ms cubic-bezier(0.33, 0, 0.2, 1)`
-        path.style.strokeDashoffset = '0'
+        img.style.transition = `clip-path ${duration}ms cubic-bezier(0.33, 0, 0.2, 1)`
+        img.style.clipPath = SHOWN
       }, 60)
     }
 
-    // Require the section to be substantially in view (not just peeking above
-    // the fold) so the slow draw plays as the visitor arrives, not on load.
     const inView = () => {
-      const r = svg.getBoundingClientRect()
+      const r = img.getBoundingClientRect()
       const vh = window.innerHeight
       const visible = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0))
       return r.height > 0 && visible / r.height > 0.55
@@ -85,10 +72,9 @@ export function PorcelainBackdrop({
       },
       { threshold: [0.25, 0.55, 0.75] }
     )
-    io.observe(svg)
+    io.observe(img)
 
-    // Safety net: if the observer never fires (backgrounded tab, layout quirk),
-    // poll visibility and draw once the section is actually on screen.
+    // Safety net for backgrounded tabs / layout quirks where IO never fires.
     const poll = window.setInterval(() => {
       if (drawnRef.current) return window.clearInterval(poll)
       if (inView()) draw()
@@ -100,9 +86,7 @@ export function PorcelainBackdrop({
       window.clearInterval(poll)
       window.clearTimeout(stopPoll)
     }
-  }, [duration, inner])
-
-  if (!inner) return null
+  }, [duration])
 
   return (
     <div
@@ -110,15 +94,16 @@ export function PorcelainBackdrop({
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ opacity }}
     >
-      {/* Cover-fill: zoom the art to take up the entire section */}
-      <svg
-        ref={svgRef}
-        viewBox={viewBox}
-        preserveAspectRatio="xMidYMid slice"
-        className="absolute inset-0 h-full w-full"
-        style={scale !== 1 ? { transform: `scale(${scale})` } : undefined}
-        fill="none"
-        dangerouslySetInnerHTML={{ __html: inner }}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={imgRef}
+        src="/porcelain-art.png"
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{
+          clipPath: reduced ? SHOWN : HIDDEN,
+          transform: scale !== 1 ? `scale(${scale})` : undefined,
+        }}
       />
     </div>
   )
