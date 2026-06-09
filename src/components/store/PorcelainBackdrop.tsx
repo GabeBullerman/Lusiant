@@ -53,12 +53,12 @@ export function PorcelainBackdrop({
     const draw = () => {
       if (drawnRef.current) return
       drawnRef.current = true
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          path.style.transition = `stroke-dashoffset ${duration}ms cubic-bezier(0.33, 0, 0.2, 1)`
-          path.style.strokeDashoffset = '0'
-        })
-      )
+      // setTimeout (not rAF) so it still fires in a backgrounded tab, and a
+      // short delay lets the primed offset commit before the transition.
+      setTimeout(() => {
+        path.style.transition = `stroke-dashoffset ${duration}ms cubic-bezier(0.33, 0, 0.2, 1)`
+        path.style.strokeDashoffset = '0'
+      }, 60)
     }
 
     const io = new IntersectionObserver(
@@ -74,7 +74,15 @@ export function PorcelainBackdrop({
       { threshold: 0.1 }
     )
     io.observe(svg)
-    return () => io.disconnect()
+
+    // Safety net: if the observer never fires (e.g. backgrounded tab, layout
+    // quirk), draw anyway so the section is never left blank.
+    const fallback = setTimeout(draw, 2600)
+
+    return () => {
+      io.disconnect()
+      clearTimeout(fallback)
+    }
   }, [duration, inner])
 
   if (!inner) return null
