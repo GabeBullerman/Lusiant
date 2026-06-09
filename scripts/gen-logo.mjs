@@ -6,6 +6,7 @@
 // Run: npm run logo
 import * as mupdf from 'mupdf'
 import sharp from 'sharp'
+import potrace from 'potrace'
 import pngToIco from 'png-to-ico'
 import { readFileSync, writeFileSync } from 'fs'
 
@@ -89,16 +90,26 @@ const side = Math.round(Math.max(bm.width, bm.height) * 1.22)
 const blossomSquare = await sharp({ create: { width: side, height: side, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
   .composite([{ input: blossomTrimmed }]).png().toBuffer()
 
-// ---- favicons ----
-await sharp(blossomSquare).resize(512, 512).png().toFile('src/app/icon.png')
-// apple touch icons can't be transparent (iOS backs them with black), so put
-// the black blossom on a white tile.
+// ---- adaptive SVG favicon (vectorized blossom that flips colour with the
+//      browser theme: dark mark on light tabs, light mark on dark tabs) ----
+const blossomWhite = await sharp(blossomSquare).flatten({ background: '#ffffff' }).png().toBuffer()
+const tracedSvg = await new Promise((res, rej) =>
+  potrace.trace(blossomWhite, { threshold: 160, turdSize: 30, optCurve: true }, (e, s) => (e ? rej(e) : res(s))))
+const pathTag = (tracedSvg.match(/<path\b[^>]*?\/?>/)?.[0] || '').replace(/\sfill="[^"]*"/, '').replace(/\/?>$/, '/>')
+const dim = tracedSvg.match(/viewBox="([^"]+)"/) || tracedSvg.match(/width="([\d.]+)"\s+height="([\d.]+)"/)
+const vb = dim && dim[1].includes(' ') ? dim[1] : `0 0 ${dim?.[1] || side} ${dim?.[2] || side}`
+const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}">` +
+  `<style>path{fill:#111}@media (prefers-color-scheme:dark){path{fill:#fff}}</style>${pathTag}</svg>`
+writeFileSync('src/app/icon.svg', iconSvg)
+
+// ---- raster fallbacks (old browsers / iOS) ----
+// apple touch icons can't be transparent (iOS backs them black), so use a white tile.
 await sharp(blossomSquare).resize(180, 180).flatten({ background: '#ffffff' }).png().toFile('src/app/apple-icon.png')
 const ico16 = await sharp(blossomSquare).resize(16, 16).png().toBuffer()
 const ico32 = await sharp(blossomSquare).resize(32, 32).png().toBuffer()
 const ico48 = await sharp(blossomSquare).resize(48, 48).png().toBuffer()
 writeFileSync('src/app/favicon.ico', await pngToIco([ico16, ico32, ico48]))
-console.log('wrote favicon.ico / icon.png / apple-icon.png  (blossom', side + 'px )')
+console.log('wrote icon.svg (adaptive) / favicon.ico / apple-icon.png  (blossom', side + 'px )')
 
 // ---- wordmark silhouette (for the adaptive nav logo) ----
 const WMW = 2400
