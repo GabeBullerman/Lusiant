@@ -103,7 +103,11 @@ for (const poly of flatten(rawD)) {
     if (simp.length >= 2 && plen(simp) >= MIN_CHUNK) chunks.push(simp)
   }
 }
-chunks.sort((a, b) => (a.reduce((s, p) => s + p[0], 0) / a.length) - (b.reduce((s, p) => s + p[0], 0) / b.length))
+// Order by distance from the horizontal center so the trace draws from the
+// middle outward (both directions expand together).
+const cx = FW / 2
+const cdist = c => Math.abs((c.reduce((s, p) => s + p[0], 0) / c.length) - cx)
+chunks.sort((a, b) => cdist(a) - cdist(b))
 const d = chunks.map(emit).join('')
 writeFileSync(OUT_TRACE, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FW} ${FH}"><path d="${d}"/></svg>`)
 console.log('wrote', OUT_TRACE, chunks.length, 'chunks')

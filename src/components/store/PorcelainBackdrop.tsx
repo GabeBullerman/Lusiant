@@ -18,7 +18,8 @@ interface Art {
   subs: string[]
 }
 
-const HIDDEN = 'inset(0 100% 0 0)'
+// Fills reveal from the horizontal center outward (matching the trace order).
+const HIDDEN = 'inset(0 50% 0 50%)'
 const SHOWN = 'inset(0 0 0 0)'
 const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)'
 
