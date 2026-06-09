@@ -13,7 +13,7 @@ interface Props {
  * Full-bleed black line-art that draws itself in on scroll into view.
  */
 export function PorcelainBackdrop({
-  opacity = 0.85,
+  opacity = 1,
   duration = 4200,
   className = '',
 }: Props) {
@@ -85,11 +85,11 @@ export function PorcelainBackdrop({
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ opacity }}
     >
-      {/* Full-bleed: stretch the art across the entire section */}
+      {/* Centered at natural proportions, fills the section height */}
       <svg
         ref={svgRef}
         viewBox={viewBox}
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
         className="absolute inset-0 h-full w-full"
         fill="none"
         dangerouslySetInnerHTML={{ __html: inner }}

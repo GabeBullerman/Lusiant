@@ -80,23 +80,27 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Porcelain pattern showcase */}
+      {featured.length > 0 && (
+        <section className="relative w-full h-[70vh] min-h-[460px] overflow-hidden bg-white">
+          <PorcelainBackdrop />
+        </section>
+      )}
+
       {/* Best Sellers */}
       {featured.length > 0 && (
         <Reveal>
-          <section className="relative max-w-[1800px] mx-auto px-4 md:px-8 py-12 overflow-hidden">
-            <PorcelainBackdrop />
-            <div className="relative z-10">
-              <div className="mb-8 text-center">
-                <h2 className="text-2xl md:text-3xl tracking-[0.2em] font-medium uppercase">Best Sellers</h2>
-                <Link href="/shop" className="inline-block mt-3 text-xs tracking-widest text-gray-500 hover:text-black transition-colors uppercase">
-                  View all →
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
-                {featured.map(product => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+          <section className="max-w-[1800px] mx-auto px-4 md:px-8 py-12">
+            <div className="mb-8 text-center">
+              <h2 className="text-2xl md:text-3xl tracking-[0.2em] font-medium uppercase">Best Sellers</h2>
+              <Link href="/shop" className="inline-block mt-3 text-xs tracking-widest text-gray-500 hover:text-black transition-colors uppercase">
+                View all →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
+              {featured.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
             </div>
           </section>
         </Reveal>
