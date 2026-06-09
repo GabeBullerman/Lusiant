@@ -1,27 +1,36 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { PorcelainDraw } from '@/components/lab/PorcelainDraw'
+import { useState } from 'react'
+import { PorcelainBackdrop } from '@/components/store/PorcelainBackdrop'
 
 // Three.js is browser-only — load without SSR.
 const InkField = dynamic(() => import('@/components/lab/InkField'), { ssr: false })
 
 export default function LabPage() {
+  // Bump the key to remount PorcelainBackdrop and replay the draw from scratch.
+  const [replay, setReplay] = useState(0)
+
   return (
     <main className="bg-white text-black">
-      {/* 1 — SVG line-draw (the porcelain design) spanning the whole section */}
-      <section className="min-h-screen relative overflow-hidden flex flex-col items-center justify-center px-6 bg-white">
-        <p className="absolute top-8 left-8 z-10 text-[11px] tracking-widest uppercase text-gray-300">
-          01 — Line draw (SVG)
+      {/* 1 — Self-drawing porcelain floral: outlines trace on (center-out), then
+          the shaded fills reveal behind. */}
+      <section className="relative isolate min-h-screen w-full overflow-hidden bg-white">
+        <p className="absolute top-8 left-8 z-20 text-[11px] tracking-widest uppercase text-gray-300">
+          01 — Self-drawing line art (SVG)
         </p>
-        <PorcelainDraw />
-        <div className="relative z-10 text-center pointer-events-none">
-          <h1 className="text-sm md:text-base tracking-[0.4em] font-medium uppercase">
-            Shattered Porcelain
+        <PorcelainBackdrop key={replay} />
+        {/* mix-blend-difference: text auto-inverts against the artwork beneath. */}
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center mix-blend-difference pointer-events-none">
+          <h1 className="text-white text-3xl md:text-6xl tracking-[0.2em] font-medium uppercase">
+            Gabe Bullerman
           </h1>
-          <p className="mt-3 text-[11px] tracking-widest uppercase text-gray-400">
-            Placeholder — swap in the real artwork
-          </p>
+          <button
+            onClick={() => setReplay(n => n + 1)}
+            className="pointer-events-auto mt-6 text-white text-xs md:text-sm tracking-[0.3em] uppercase border-b border-white pb-1 hover:opacity-70 transition-opacity"
+          >
+            Replay
+          </button>
         </div>
       </section>
 
