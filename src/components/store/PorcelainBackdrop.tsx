@@ -1,41 +1,46 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import { PORCELAIN_PATH, PORCELAIN_VIEWBOX } from './porcelainPath'
+import { useEffect, useRef, useState } from 'react'
 
 interface Props {
-  /** 0–1 opacity of the line art. Default 0.12 (faint, sits behind content). */
   opacity?: number
-  /** Stroke color. Default cobalt porcelain blue. */
-  color?: string
-  /** Draw duration in ms. Default 4200. */
   duration?: number
   className?: string
 }
 
 /**
- * Faint "self-drawing" porcelain floral line art, traced from the brand's
- * shattered-porcelain denim pattern. Draws itself in (strokeDashoffset) the
- * first time it scrolls into view. Purely decorative: pointer-events none,
- * aria-hidden, and respects prefers-reduced-motion.
+ * Animated porcelain floral backdrop for Best Sellers.
+ * SVG draws itself in on scroll into view.
  */
 export function PorcelainBackdrop({
   opacity = 0.12,
-  color = '#1b3a8f',
   duration = 4200,
   className = '',
 }: Props) {
-  const pathRef = useRef<SVGPathElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
   const drawnRef = useRef(false)
+  const [svgContent, setSvgContent] = useState<string>('')
 
+  // Fetch SVG on mount
   useEffect(() => {
-    const path = pathRef.current
+    fetch('/porcelain-pattern.svg')
+      .then(r => r.text())
+      .then(setSvgContent)
+      .catch(console.error)
+  }, [])
+
+  // Animate once mounted
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+
+    const path = svg.querySelector('path') as SVGPathElement
     if (!path) return
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const len = path.getTotalLength()
 
-    // Prime the dash so the line starts fully "undrawn".
+    // Prime dash
     path.style.strokeDasharray = String(len)
     path.style.strokeDashoffset = reduced ? '0' : String(len)
     if (reduced) return
@@ -43,7 +48,6 @@ export function PorcelainBackdrop({
     const draw = () => {
       if (drawnRef.current) return
       drawnRef.current = true
-      // Double rAF so the primed offset is committed before transitioning.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           path.style.transition = `stroke-dashoffset ${duration}ms cubic-bezier(0.33, 0, 0.2, 1)`
@@ -64,32 +68,26 @@ export function PorcelainBackdrop({
       },
       { threshold: 0.15 }
     )
-    io.observe(path)
+    io.observe(svg)
     return () => io.disconnect()
-  }, [duration])
+  }, [duration, svgContent])
+
+  if (!svgContent) return null
 
   return (
     <div
       aria-hidden
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
+      style={{ opacity }}
     >
       <svg
-        viewBox={PORCELAIN_VIEWBOX}
+        ref={svgRef}
+        viewBox="0 0 1400 1400"
         preserveAspectRatio="xMidYMid meet"
-        className="absolute left-1/2 top-1/2 h-[125%] w-auto max-w-none -translate-x-1/2 -translate-y-1/2"
-        style={{ opacity }}
+        className="absolute left-1/2 top-1/2 h-[140%] w-auto max-w-none -translate-x-1/2 -translate-y-1/2"
         fill="none"
-      >
-        <path
-          ref={pathRef}
-          d={PORCELAIN_PATH}
-          stroke={color}
-          strokeWidth={1.4}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </svg>
+        dangerouslySetInnerHTML={{ __html: svgContent }}
+      />
     </div>
   )
 }
