@@ -15,7 +15,8 @@ const OUT_FILLS = 'public/porcelain-fills.png'
 const OUT_TRACE = 'public/porcelain-trace.svg'
 const STROKE = 5      // outline width (viewBox px); MUST match the component's strokeWidth
 const CHUNK = 170     // max trace-chunk length (px) before reordering left-to-right
-const MIN_CHUNK = 14  // drop micro-chunks that render as stray dots
+const MIN_CHUNK = 30  // drop micro-chunks that render as stray dots
+const TURD = 24       // potrace: suppress speckles up to this area (drops tiny dots)
 
 // ---- load art alpha at full res ----
 const { data: art, info } = await sharp(ART).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
@@ -26,7 +27,7 @@ for (let i = 0; i < FW * FH; i++) alpha[i] = art[i * 4 + 3]
 // ---- potrace contours of the full art ----
 const artWhite = await sharp(ART).flatten({ background: '#ffffff' }).png().toBuffer()
 const svg = await new Promise((res, rej) => {
-  potrace.trace(artWhite, { threshold: 160, turdSize: 6, optCurve: true, alphaMax: 1, turnPolicy: 'minority' },
+  potrace.trace(artWhite, { threshold: 160, turdSize: TURD, optCurve: true, alphaMax: 1, turnPolicy: 'minority' },
     (err, out) => (err ? rej(err) : res(out)))
 })
 const rawD = svg.match(/ d="([^"]+)"/)?.[1] ?? ''
@@ -94,7 +95,9 @@ for (const poly of flatten(rawD)) {
   for (const ch of chunk(poly)) {
     if (plen(ch) < MIN_CHUNK) continue
     const simp = dp(ch, 1.2)
-    if (simp.length >= 2) chunks.push(simp)
+    // Re-check on the simplified geometry and require real extent so degenerate
+    // near-zero-length pieces don't render as round-cap dots.
+    if (simp.length >= 2 && plen(simp) >= MIN_CHUNK) chunks.push(simp)
   }
 }
 chunks.sort((a, b) => (a.reduce((s, p) => s + p[0], 0) / a.length) - (b.reduce((s, p) => s + p[0], 0) / b.length))
