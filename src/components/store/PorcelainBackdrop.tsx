@@ -61,27 +61,31 @@ export function PorcelainBackdrop({
       }, 60)
     }
 
+    // Require the section to be substantially in view (not just peeking above
+    // the fold) so the slow draw plays as the visitor arrives, not on load.
+    const inView = () => {
+      const r = svg.getBoundingClientRect()
+      const vh = window.innerHeight
+      const visible = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0))
+      return r.height > 0 && visible / r.height > 0.55
+    }
+
     const io = new IntersectionObserver(
       entries => {
         for (const e of entries) {
-          if (e.isIntersecting) {
+          if (e.isIntersecting && inView()) {
             draw()
             io.disconnect()
             break
           }
         }
       },
-      { threshold: 0.1 }
+      { threshold: [0.25, 0.55, 0.75] }
     )
     io.observe(svg)
 
     // Safety net: if the observer never fires (backgrounded tab, layout quirk),
-    // poll visibility and draw once the section is actually on screen — so it
-    // still animates on scroll rather than completing off-screen.
-    const inView = () => {
-      const r = svg.getBoundingClientRect()
-      return r.top < window.innerHeight && r.bottom > 0
-    }
+    // poll visibility and draw once the section is actually on screen.
     const poll = window.setInterval(() => {
       if (drawnRef.current) return window.clearInterval(poll)
       if (inView()) draw()
