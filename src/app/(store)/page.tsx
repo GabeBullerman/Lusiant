@@ -76,21 +76,28 @@ export default async function HomePage() {
 
       {/* Porcelain pattern showcase */}
       {featured.length > 0 && (
-        <section className="relative w-full h-[70vh] min-h-[460px] overflow-hidden bg-white">
+        <section className="relative isolate w-full h-[70vh] min-h-[460px] overflow-hidden bg-white">
           <PorcelainBackdrop />
+          {/* Text over the drawing. mix-blend-difference inverts the text
+              against whatever's beneath it: black on white, white over a line. */}
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center mix-blend-difference pointer-events-none">
+            <h2 className="text-white text-3xl md:text-6xl tracking-[0.2em] font-medium uppercase">
+              Shattered Porcelain
+            </h2>
+            <Link
+              href="/shop"
+              className="pointer-events-auto mt-6 text-white text-xs md:text-sm tracking-[0.3em] uppercase border-b border-white pb-1 hover:opacity-70 transition-opacity"
+            >
+              Shop Now
+            </Link>
+          </div>
         </section>
       )}
 
       {/* Best Sellers */}
       {featured.length > 0 && (
         <Reveal>
-          <section className="max-w-[1800px] mx-auto px-4 md:px-8 py-12">
-            <div className="mb-8 text-center">
-              <h2 className="text-2xl md:text-3xl tracking-[0.2em] font-medium uppercase">Shattered Porcelain</h2>
-              <Link href="/shop" className="inline-block mt-3 text-xs tracking-widest text-gray-500 hover:text-black transition-colors uppercase">
-                View all →
-              </Link>
-            </div>
+          <section className="max-w-[1800px] mx-auto px-4 md:px-8 pt-4 pb-12">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-5">
               {featured.map(product => (
                 <ProductCard key={product.id} product={product} />
