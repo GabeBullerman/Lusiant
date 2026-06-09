@@ -10,7 +10,7 @@ import pngToIco from 'png-to-ico'
 import { readFileSync, writeFileSync } from 'fs'
 
 const SRC = 'D:/Downloads/Lusiant Assets/For Gabe/ai files/lsnt logo mac.ai'
-const BLOSSOM = { r: 141, g: 172, b: 218 } // periwinkle brand color for the mark
+const BLOSSOM = { r: 17, g: 17, b: 17 } // near-black mark (reads on light browser tabs)
 const Z = 5
 
 // ---- render the .ai to a hi-res raster ----
@@ -91,7 +91,9 @@ const blossomSquare = await sharp({ create: { width: side, height: side, channel
 
 // ---- favicons ----
 await sharp(blossomSquare).resize(512, 512).png().toFile('src/app/icon.png')
-await sharp(blossomSquare).resize(180, 180).png().toFile('src/app/apple-icon.png')
+// apple touch icons can't be transparent (iOS backs them with black), so put
+// the black blossom on a white tile.
+await sharp(blossomSquare).resize(180, 180).flatten({ background: '#ffffff' }).png().toFile('src/app/apple-icon.png')
 const ico16 = await sharp(blossomSquare).resize(16, 16).png().toBuffer()
 const ico32 = await sharp(blossomSquare).resize(32, 32).png().toBuffer()
 const ico48 = await sharp(blossomSquare).resize(48, 48).png().toBuffer()

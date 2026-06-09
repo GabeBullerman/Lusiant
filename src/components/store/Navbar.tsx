@@ -85,7 +85,7 @@ export function Navbar({ collections }: NavbarProps) {
         >
           <span
             aria-hidden
-            className="block h-6 w-[88px] md:h-7 md:w-[102px] bg-current"
+            className="block h-7 w-[100px] md:h-9 md:w-[120px] bg-current"
             style={{
               WebkitMask: 'url(/logo-wordmark.png) center / contain no-repeat',
               mask: 'url(/logo-wordmark.png) center / contain no-repeat',
