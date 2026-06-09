@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 interface Props {
   opacity?: number
   duration?: number
-  /** Size relative to the section. >1 bleeds off the edges. Default 1.6. */
+  /** Extra zoom on top of cover-fill. 1 = just cover the section. Default 1. */
   scale?: number
   className?: string
 }
@@ -17,7 +17,7 @@ interface Props {
 export function PorcelainBackdrop({
   opacity = 1,
   duration = 11000,
-  scale = 1.6,
+  scale = 1,
   className = '',
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
@@ -110,13 +110,13 @@ export function PorcelainBackdrop({
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ opacity }}
     >
-      {/* Oversized + centered so the art bleeds off the section edges */}
+      {/* Cover-fill: zoom the art to take up the entire section */}
       <svg
         ref={svgRef}
         viewBox={viewBox}
-        preserveAspectRatio="xMidYMid meet"
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ width: `${scale * 100}%`, height: `${scale * 100}%` }}
+        preserveAspectRatio="xMidYMid slice"
+        className="absolute inset-0 h-full w-full"
+        style={scale !== 1 ? { transform: `scale(${scale})` } : undefined}
         fill="none"
         dangerouslySetInnerHTML={{ __html: inner }}
       />
