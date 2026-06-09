@@ -76,9 +76,21 @@ export function Navbar({ collections }: NavbarProps) {
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        {/* Logo */}
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2 font-bold text-xl tracking-[0.3em]">
-          LS&NT
+        {/* Logo — wordmark silhouette tinted by currentColor (white over the
+            hero, black on inner pages) via a CSS mask. */}
+        <Link
+          href="/"
+          aria-label="Lusiant — home"
+          className="absolute left-1/2 -translate-x-1/2 hover:opacity-70 transition-opacity"
+        >
+          <span
+            aria-hidden
+            className="block h-6 w-[88px] md:h-7 md:w-[102px] bg-current"
+            style={{
+              WebkitMask: 'url(/logo-wordmark.png) center / contain no-repeat',
+              mask: 'url(/logo-wordmark.png) center / contain no-repeat',
+            }}
+          />
         </Link>
 
         {/* Right */}
