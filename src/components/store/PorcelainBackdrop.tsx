@@ -6,7 +6,9 @@ interface Props {
   opacity?: number
   /** Total animation duration in ms. Default 7000. */
   duration?: number
-  /** Outline stroke width, in viewBox units (scales with the art). Default 3. */
+  /** Outline stroke width, in viewBox units. Must match STROKE in
+   *  scripts/gen-porcelain-layers.mjs so the trace covers the removed line
+   *  strips in the fills layer. Default 5. */
   strokeWidth?: number
   className?: string
 }
@@ -37,7 +39,7 @@ const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)'
 export function PorcelainBackdrop({
   opacity = 1,
   duration = 7000,
-  strokeWidth = 3,
+  strokeWidth = 5,
   className = '',
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)

@@ -1,11 +1,11 @@
-// Splits the porcelain art into two animation layers (same coordinate space as
+// Builds the two porcelain animation layers (same coordinate space as
 // public/porcelain-art.png):
-//   1. public/porcelain-trace.svg  - vector OUTLINE contours of the art (potrace).
-//      Stroked + drawn on via stroke-dashoffset = the "tracing" animation. Traces
-//      every shape's silhouette, so the heavily-filled left orchids are included.
-//   2. public/porcelain-fills.png  - the SOLID filled/shaded regions only (thin
-//      linework removed via morphological opening). Revealed after the trace so it
-//      adds interior shading WITHOUT thickening the already-drawn outlines.
+//   1. public/porcelain-trace.svg - vector OUTLINE contours (potrace), broken
+//      into short left-to-right chunks so the pen can trace them in order.
+//   2. public/porcelain-fills.png - the EXACT original shading (spiky solid
+//      regions, full detail) with only the thin outline strips removed (the ones
+//      the trace redraws on top). Revealed after the trace, it adds the fills
+//      without thickening the lines.
 import sharp from 'sharp'
 import potrace from 'potrace'
 import { writeFileSync } from 'fs'
@@ -13,43 +13,15 @@ import { writeFileSync } from 'fs'
 const ART = 'public/porcelain-art.png'
 const OUT_FILLS = 'public/porcelain-fills.png'
 const OUT_TRACE = 'public/porcelain-trace.svg'
-const OPEN_R = 7 // opening radius (px @ full res): removes lines up to ~2r thick
+const STROKE = 5      // outline width (viewBox px); MUST match the component's strokeWidth
+const CHUNK = 170     // max trace-chunk length (px) before reordering left-to-right
+const MIN_CHUNK = 14  // drop micro-chunks that render as stray dots
 
 // ---- load art alpha at full res ----
 const { data: art, info } = await sharp(ART).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
 const FW = info.width, FH = info.height
 const alpha = new Uint8Array(FW * FH)
 for (let i = 0; i < FW * FH; i++) alpha[i] = art[i * 4 + 3]
-
-// ---- separable grayscale morphology (min=erode, max=dilate) ----
-function morph(src, w, h, r, kind) {
-  const pick = kind === 'min' ? Math.min : Math.max
-  const tmp = new Uint8Array(w * h)
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    let v = src[y * w + x]
-    for (let k = -r; k <= r; k++) { const xx = x + k; if (xx >= 0 && xx < w) v = pick(v, src[y * w + xx]) }
-    tmp[y * w + x] = v
-  }
-  const out = new Uint8Array(w * h)
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    let v = tmp[y * w + x]
-    for (let k = -r; k <= r; k++) { const yy = y + k; if (yy >= 0 && yy < h) v = pick(v, tmp[yy * w + x]) }
-    out[y * w + x] = v
-  }
-  return out
-}
-
-// opening = erode then dilate -> keeps solid blobs, drops thin lines
-const fills = morph(morph(alpha, FW, FH, OPEN_R, 'min'), FW, FH, OPEN_R, 'max')
-// Threshold to remove faint blocky speckle the grayscale morphology leaves,
-// then a light blur re-introduces clean antialiased edges.
-const fillRGBA = Buffer.alloc(FW * FH * 4)
-for (let i = 0; i < FW * FH; i++) fillRGBA[i * 4 + 3] = fills[i] >= 128 ? 255 : 0
-await sharp(fillRGBA, { raw: { width: FW, height: FH, channels: 4 } })
-  .blur(1.2)
-  .png({ compressionLevel: 9 })
-  .toFile(OUT_FILLS)
-console.log('wrote', OUT_FILLS, FW + 'x' + FH)
 
 // ---- potrace contours of the full art ----
 const artWhite = await sharp(ART).flatten({ background: '#ffffff' }).png().toBuffer()
@@ -59,9 +31,7 @@ const svg = await new Promise((res, rej) => {
 })
 const rawD = svg.match(/ d="([^"]+)"/)?.[1] ?? ''
 
-// Flatten the bezier contours into polylines so we can break the few giant
-// contours into small chunks and order them left-to-right -> the dash-draw
-// sweeps smoothly across the art instead of revealing whole contours at once.
+// ---- flatten bezier contours -> polylines ----
 const cube = (a, b, c, d, t) => { const m = 1 - t; return m * m * m * a + 3 * m * m * t * b + 3 * m * t * t * c + t * t * t * d }
 function flatten(dStr) {
   const toks = dStr.match(/[a-zA-Z]|-?\d*\.?\d+(?:e-?\d+)?/g) || []
@@ -86,8 +56,6 @@ function flatten(dStr) {
   if (cur && cur.length > 1) polys.push(cur)
   return polys
 }
-
-// Douglas-Peucker simplify
 function dp(pts, eps) {
   if (pts.length < 3) return pts
   let dmax = 0, im = 0
@@ -97,9 +65,7 @@ function dp(pts, eps) {
   if (dmax > eps) return dp(pts.slice(0, im + 1), eps).slice(0, -1).concat(dp(pts.slice(im), eps))
   return [pts[0], pts[pts.length - 1]]
 }
-
-// chunk a polyline into pieces of max CHUNK length (full-res px)
-const CHUNK = 170
+const plen = pts => { let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]); return L }
 function chunk(pts) {
   const out = []; let cur = [pts[0]]; let acc = 0
   for (let k = 1; k < pts.length; k++) {
@@ -109,8 +75,6 @@ function chunk(pts) {
   if (cur.length >= 2) out.push(cur); else if (out.length) out[out.length - 1].push(...cur.slice(1))
   return out
 }
-
-// Catmull-Rom -> cubic bezier
 function emit(P) {
   if (P.length < 2) return ''
   let s = `M${P[0][0].toFixed(1)} ${P[0][1].toFixed(1)}`
@@ -124,11 +88,7 @@ function emit(P) {
   return s
 }
 
-// Chunk the (dense) flattened contours FIRST so closed loops become open
-// pieces, THEN simplify each piece (DP collapses closed loops to 2 points
-// because their start≈end chord is degenerate).
-const MIN_CHUNK = 14 // drop micro-chunks (full-res px) that render as stray dots
-const plen = pts => { let L = 0; for (let k = 1; k < pts.length; k++) L += Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]); return L }
+// chunk first (so closed loops become open pieces), then simplify each piece
 const chunks = []
 for (const poly of flatten(rawD)) {
   for (const ch of chunk(poly)) {
@@ -139,6 +99,18 @@ for (const poly of flatten(rawD)) {
 }
 chunks.sort((a, b) => (a.reduce((s, p) => s + p[0], 0) / a.length) - (b.reduce((s, p) => s + p[0], 0) / b.length))
 const d = chunks.map(emit).join('')
-
 writeFileSync(OUT_TRACE, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FW} ${FH}"><path d="${d}"/></svg>`)
-console.log('wrote', OUT_TRACE, chunks.length, 'chunks,', (d.length / 1024).toFixed(0) + 'KB')
+console.log('wrote', OUT_TRACE, chunks.length, 'chunks')
+
+// ---- fills = original shading with the outline strips removed ----
+// Rasterize the trace as a stroke mask, then keep the original art everywhere
+// EXCEPT under that stroke (those line pixels are redrawn by the trace on top).
+const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FW} ${FH}"><rect width="${FW}" height="${FH}" fill="black"/><path d="${d}" fill="none" stroke="white" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+const { data: maskData } = await sharp(Buffer.from(maskSvg)).resize(FW, FH, { fit: 'fill' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+const fillRGBA = Buffer.alloc(FW * FH * 4)
+for (let i = 0; i < FW * FH; i++) {
+  const onLine = maskData[i * 4] > 64 // red channel of the white stroke
+  fillRGBA[i * 4 + 3] = onLine ? 0 : alpha[i]
+}
+await sharp(fillRGBA, { raw: { width: FW, height: FH, channels: 4 } }).png({ compressionLevel: 9 }).toFile(OUT_FILLS)
+console.log('wrote', OUT_FILLS, FW + 'x' + FH)
