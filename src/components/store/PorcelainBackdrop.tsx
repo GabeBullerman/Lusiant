@@ -5,16 +5,19 @@ import { useEffect, useRef, useState } from 'react'
 interface Props {
   opacity?: number
   duration?: number
+  /** Size relative to the section. >1 bleeds off the edges. Default 1.6. */
+  scale?: number
   className?: string
 }
 
 /**
- * Animated porcelain floral backdrop for Best Sellers.
- * Full-bleed black line-art that draws itself in on scroll into view.
+ * Animated porcelain floral line-art that draws itself in on scroll into view.
+ * Centerline-traced so each line is a single pen-stroke (no outline retrace).
  */
 export function PorcelainBackdrop({
   opacity = 1,
   duration = 11000,
+  scale = 1.6,
   className = '',
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
@@ -107,12 +110,13 @@ export function PorcelainBackdrop({
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ opacity }}
     >
-      {/* Centered at natural proportions, fills the section height */}
+      {/* Oversized + centered so the art bleeds off the section edges */}
       <svg
         ref={svgRef}
         viewBox={viewBox}
         preserveAspectRatio="xMidYMid meet"
-        className="absolute inset-0 h-full w-full"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ width: `${scale * 100}%`, height: `${scale * 100}%` }}
         fill="none"
         dangerouslySetInnerHTML={{ __html: inner }}
       />
