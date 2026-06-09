@@ -74,8 +74,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Porcelain pattern showcase */}
-      {featured.length > 0 && (
+      {/* Porcelain pattern showcase (always shown; independent of catalog) */}
+      {(
         <section className="relative isolate w-full h-[70vh] min-h-[460px] overflow-hidden bg-white">
           <PorcelainBackdrop />
           {/* Text over the drawing. mix-blend-difference inverts the text
