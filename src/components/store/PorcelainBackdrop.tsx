@@ -13,7 +13,7 @@ interface Props {
  * SVG draws itself in on scroll into view.
  */
 export function PorcelainBackdrop({
-  opacity = 0.12,
+  opacity = 0.18,
   duration = 4200,
   className = '',
 }: Props) {
