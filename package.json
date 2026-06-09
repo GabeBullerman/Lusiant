@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "branding": "node scripts/gen-branding.mjs",
-    "porcelain": "node scripts/gen-porcelain-art.mjs"
+    "porcelain": "node scripts/gen-porcelain-art.mjs && node scripts/gen-porcelain-skeleton.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
