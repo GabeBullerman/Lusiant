@@ -14,6 +14,9 @@ const ART = 'public/porcelain-art.png'
 const OUT_FILLS = 'public/porcelain-fills.png'
 const OUT_TRACE = 'public/porcelain-trace.svg'
 const STROKE = 5      // outline width (viewBox px); MUST match the component's strokeWidth
+const MASK_STROKE = 2.5 // strip removed from fills; kept NARROWER than STROKE so the
+                        // trace always over-covers it (no white gap) while still
+                        // hiding the line remnants (no thickening)
 const CHUNK = 170     // max trace-chunk length (px) before reordering left-to-right
 const MIN_CHUNK = 30  // drop micro-chunks that render as stray dots
 const TURD = 24       // potrace: suppress speckles up to this area (drops tiny dots)
@@ -108,11 +111,13 @@ console.log('wrote', OUT_TRACE, chunks.length, 'chunks')
 // ---- fills = original shading with the outline strips removed ----
 // Rasterize the trace as a stroke mask, then keep the original art everywhere
 // EXCEPT under that stroke (those line pixels are redrawn by the trace on top).
-const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FW} ${FH}"><rect width="${FW}" height="${FH}" fill="black"/><path d="${d}" fill="none" stroke="white" stroke-width="${STROKE}" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${FW} ${FH}"><rect width="${FW}" height="${FH}" fill="black"/><path d="${d}" fill="none" stroke="white" stroke-width="${MASK_STROKE}" stroke-linecap="round" stroke-linejoin="round"/></svg>`
 const { data: maskData } = await sharp(Buffer.from(maskSvg)).resize(FW, FH, { fit: 'fill' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
 const fillRGBA = Buffer.alloc(FW * FH * 4)
 for (let i = 0; i < FW * FH; i++) {
-  const onLine = maskData[i * 4] > 64 // red channel of the white stroke
+  // Only remove where the strip is essentially solid (high threshold) so the
+  // antialiased edge isn't carved out, keeping fills flush under the trace.
+  const onLine = maskData[i * 4] > 160
   fillRGBA[i * 4 + 3] = onLine ? 0 : alpha[i]
 }
 await sharp(fillRGBA, { raw: { width: FW, height: FH, channels: 4 } }).png({ compressionLevel: 9 }).toFile(OUT_FILLS)
