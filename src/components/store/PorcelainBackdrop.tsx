@@ -14,7 +14,7 @@ interface Props {
  */
 export function PorcelainBackdrop({
   opacity = 1,
-  duration = 4200,
+  duration = 11000,
   className = '',
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
@@ -75,13 +75,23 @@ export function PorcelainBackdrop({
     )
     io.observe(svg)
 
-    // Safety net: if the observer never fires (e.g. backgrounded tab, layout
-    // quirk), draw anyway so the section is never left blank.
-    const fallback = setTimeout(draw, 2600)
+    // Safety net: if the observer never fires (backgrounded tab, layout quirk),
+    // poll visibility and draw once the section is actually on screen — so it
+    // still animates on scroll rather than completing off-screen.
+    const inView = () => {
+      const r = svg.getBoundingClientRect()
+      return r.top < window.innerHeight && r.bottom > 0
+    }
+    const poll = window.setInterval(() => {
+      if (drawnRef.current) return window.clearInterval(poll)
+      if (inView()) draw()
+    }, 400)
+    const stopPoll = window.setTimeout(() => window.clearInterval(poll), 60000)
 
     return () => {
       io.disconnect()
-      clearTimeout(fallback)
+      window.clearInterval(poll)
+      window.clearTimeout(stopPoll)
     }
   }, [duration, inner])
 

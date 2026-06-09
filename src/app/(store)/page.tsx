@@ -68,15 +68,9 @@ export default async function HomePage() {
           />
         )}
         <div className="relative z-10">
-          <h1 className="text-white text-sm md:text-base tracking-widest font-medium mb-4 uppercase">
+          <h1 className="text-white text-sm md:text-base tracking-widest font-medium uppercase">
             {hero.title}
           </h1>
-          <Link
-            href={hero.button_href}
-            className="inline-block bg-white text-black border border-white text-xs tracking-widest px-6 py-3 hover:bg-transparent hover:text-white transition-colors"
-          >
-            {hero.button_text}
-          </Link>
         </div>
       </section>
 
@@ -92,7 +86,7 @@ export default async function HomePage() {
         <Reveal>
           <section className="max-w-[1800px] mx-auto px-4 md:px-8 py-12">
             <div className="mb-8 text-center">
-              <h2 className="text-2xl md:text-3xl tracking-[0.2em] font-medium uppercase">Best Sellers</h2>
+              <h2 className="text-2xl md:text-3xl tracking-[0.2em] font-medium uppercase">Shattered Porcelain</h2>
               <Link href="/shop" className="inline-block mt-3 text-xs tracking-widest text-gray-500 hover:text-black transition-colors uppercase">
                 View all →
               </Link>
