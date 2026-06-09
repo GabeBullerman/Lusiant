@@ -10,37 +10,42 @@ interface Props {
 
 /**
  * Animated porcelain floral backdrop for Best Sellers.
- * SVG draws itself in on scroll into view.
+ * Full-bleed black line-art that draws itself in on scroll into view.
  */
 export function PorcelainBackdrop({
-  opacity = 0.18,
+  opacity = 0.85,
   duration = 4200,
   className = '',
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const drawnRef = useRef(false)
-  const [svgContent, setSvgContent] = useState<string>('')
+  const [viewBox, setViewBox] = useState('0 0 1125 1500')
+  const [inner, setInner] = useState('')
 
-  // Fetch SVG on mount
+  // Fetch SVG on mount, extract its viewBox + inner markup (the path)
   useEffect(() => {
     fetch('/porcelain-pattern.svg')
       .then(r => r.text())
-      .then(setSvgContent)
+      .then(text => {
+        const vb = text.match(/viewBox="([^"]+)"/)?.[1]
+        if (vb) setViewBox(vb)
+        const innerMarkup = text.replace(/<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '')
+        setInner(innerMarkup)
+      })
       .catch(console.error)
   }, [])
 
-  // Animate once mounted
+  // Animate once the path is in the DOM
   useEffect(() => {
     const svg = svgRef.current
-    if (!svg) return
+    if (!svg || !inner) return
 
-    const path = svg.querySelector('path') as SVGPathElement
+    const path = svg.querySelector('path') as SVGPathElement | null
     if (!path) return
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const len = path.getTotalLength()
 
-    // Prime dash
     path.style.strokeDasharray = String(len)
     path.style.strokeDashoffset = reduced ? '0' : String(len)
     if (reduced) return
@@ -66,13 +71,13 @@ export function PorcelainBackdrop({
           }
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.1 }
     )
     io.observe(svg)
     return () => io.disconnect()
-  }, [duration, svgContent])
+  }, [duration, inner])
 
-  if (!svgContent) return null
+  if (!inner) return null
 
   return (
     <div
@@ -80,13 +85,14 @@ export function PorcelainBackdrop({
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ opacity }}
     >
+      {/* Full-bleed: stretch the art across the entire section */}
       <svg
         ref={svgRef}
-        viewBox="0 0 1400 1400"
-        preserveAspectRatio="xMidYMid meet"
-        className="absolute left-1/2 top-1/2 h-[140%] w-auto max-w-none -translate-x-1/2 -translate-y-1/2"
+        viewBox={viewBox}
+        preserveAspectRatio="none"
+        className="absolute inset-0 h-full w-full"
         fill="none"
-        dangerouslySetInnerHTML={{ __html: svgContent }}
+        dangerouslySetInnerHTML={{ __html: inner }}
       />
     </div>
   )
