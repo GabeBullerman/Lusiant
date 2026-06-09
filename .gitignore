@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# branding source exports (large; outputs are committed instead)
+/assets-src
