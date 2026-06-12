@@ -8,9 +8,10 @@ import { blurURL } from '@/lib/blur'
 interface Props {
   images: string[]
   title?: string
+  aspectRatio?: string
 }
 
-export function LookbookCarousel({ images, title }: Props) {
+export function LookbookCarousel({ images, title, aspectRatio = '3/4' }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [canScroll, setCanScroll] = useState(false)
@@ -104,7 +105,7 @@ export function LookbookCarousel({ images, title }: Props) {
               data-slide
               className="snap-start shrink-0 w-[88%] sm:w-[60%] lg:w-[40.5%]"
             >
-              <div className="relative aspect-[3/4] bg-gray-50">
+              <div className="relative bg-gray-50" style={{ aspectRatio }}>
                 <Image
                   src={url}
                   alt={title ? `${title} ${i + 1}` : `Lookbook ${i + 1}`}

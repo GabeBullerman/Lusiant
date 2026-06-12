@@ -118,7 +118,7 @@ export default async function HomePage() {
       {community.length > 0 && (
         <Reveal>
           <section className="max-w-[1800px] mx-auto px-4 md:px-8 pb-14">
-            <LookbookCarousel title="Community" images={community} />
+            <LookbookCarousel title="Community" images={community} aspectRatio="4/3" />
           </section>
         </Reveal>
       )}
