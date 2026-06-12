@@ -118,7 +118,7 @@ export default async function HomePage() {
       {community.length > 0 && (
         <Reveal>
           <section className="max-w-[1800px] mx-auto px-4 md:px-8 pb-14">
-            <LookbookCarousel title="Community" images={community} slideHeight="h-56" />
+            <LookbookCarousel title="Community" images={community} slideHeight="h-56" slideWidth="w-[44%] sm:w-[28%] lg:w-[18%]" />
           </section>
         </Reveal>
       )}

@@ -10,9 +10,10 @@ interface Props {
   title?: string
   aspectRatio?: string
   slideHeight?: string
+  slideWidth?: string
 }
 
-export function LookbookCarousel({ images, title, aspectRatio = '3/4', slideHeight }: Props) {
+export function LookbookCarousel({ images, title, aspectRatio = '3/4', slideHeight, slideWidth }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [canScroll, setCanScroll] = useState(false)
@@ -104,7 +105,7 @@ export function LookbookCarousel({ images, title, aspectRatio = '3/4', slideHeig
             <div
               key={i}
               data-slide
-              className="snap-start shrink-0 w-[88%] sm:w-[60%] lg:w-[40.5%]"
+              className={`snap-start shrink-0 ${slideWidth ?? 'w-[88%] sm:w-[60%] lg:w-[40.5%]'}`}
             >
               {slideHeight ? (
                 <div className={`relative ${slideHeight} bg-gray-50`}>
