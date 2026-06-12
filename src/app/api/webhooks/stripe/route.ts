@@ -22,7 +22,19 @@ export async function POST(req: NextRequest) {
 
     try {
       const supabase = await createClient()
-      const items = JSON.parse(session.metadata?.items ?? '[]')
+      const items = JSON.parse(session.metadata?.items ?? '[]') as Array<{
+        product_id: string
+        product_name: string
+        size: string
+        price: number
+        quantity: number
+        image: string
+      }>
+
+      const shippingCents = parseInt(session.metadata?.shipping_amount ?? '0')
+      const itemsSubtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
+      const total = (session.amount_total ?? 0) / 100
+
       const shipping = (session as unknown as Record<string, unknown>).shipping_details as {
         name?: string
         address?: { line1?: string; line2?: string; city?: string; state?: string; postal_code?: string; country?: string }
@@ -33,8 +45,8 @@ export async function POST(req: NextRequest) {
         customer_email: session.customer_details?.email ?? '',
         customer_name: session.customer_details?.name ?? '',
         items,
-        subtotal: (session.amount_subtotal ?? 0) / 100,
-        total: (session.amount_total ?? 0) / 100,
+        subtotal: itemsSubtotal,
+        total,
         status: 'paid',
         shipping_address: shipping?.address
           ? {
@@ -48,10 +60,45 @@ export async function POST(req: NextRequest) {
             }
           : null,
       })
+
+      // Decrement per-size inventory for each ordered item
+      void decrementInventory(supabase, items)
     } catch (err) {
       console.error('Failed to save order:', err)
     }
   }
 
   return NextResponse.json({ received: true })
+}
+
+async function decrementInventory(
+  supabase: Awaited<ReturnType<typeof import('@/lib/supabase/server').createClient>>,
+  items: Array<{ product_id: string; size: string; quantity: number }>
+) {
+  for (const item of items) {
+    try {
+      const { data: product } = await supabase
+        .from('products')
+        .select('size_inventory')
+        .eq('id', item.product_id)
+        .single()
+
+      if (!product) continue
+
+      const inv = (product.size_inventory ?? {}) as Record<string, number>
+      if (Object.keys(inv).length === 0) continue
+
+      const updated = {
+        ...inv,
+        [item.size]: Math.max(0, (inv[item.size] ?? 0) - item.quantity),
+      }
+
+      await supabase
+        .from('products')
+        .update({ size_inventory: updated, updated_at: new Date().toISOString() })
+        .eq('id', item.product_id)
+    } catch (err) {
+      console.error(`Failed to decrement inventory for product ${item.product_id}:`, err)
+    }
+  }
 }

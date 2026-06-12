@@ -15,11 +15,11 @@ interface FormData {
   price: string
   compare_at_price: string
   category: string
-  sizes: { value: string }[]
+  sizes: { value: string; qty: string }[]
   images: string[]
   is_active: boolean
   is_featured: boolean
-  stock_quantity: string
+  shipping_class: 'standard' | 'oversize'
 }
 
 const PRESET_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '28', '30', '32', '34', '36', '38']
@@ -36,8 +36,11 @@ export function ProductForm({ product, collections = [] }: { product?: Product; 
           description: product.description ?? '',
           price: product.price.toString(),
           compare_at_price: product.compare_at_price?.toString() ?? '',
-          stock_quantity: product.stock_quantity.toString(),
-          sizes: product.sizes.map(s => ({ value: s })),
+          shipping_class: product.shipping_class ?? 'standard',
+          sizes: product.sizes.map(s => ({
+            value: s,
+            qty: String((product.size_inventory ?? {})[s] ?? 0),
+          })),
         }
       : {
           name: '',
@@ -50,7 +53,7 @@ export function ProductForm({ product, collections = [] }: { product?: Product; 
           images: [],
           is_active: true,
           is_featured: false,
-          stock_quantity: '0',
+          shipping_class: 'standard',
         },
   })
 
@@ -77,6 +80,11 @@ export function ProductForm({ product, collections = [] }: { product?: Product; 
     setSaving(true)
     setError('')
 
+    const sizesList = data.sizes.map(s => s.value).filter(Boolean)
+    const sizeInventory = Object.fromEntries(
+      data.sizes.filter(s => s.value).map(s => [s.value, parseInt(s.qty) || 0])
+    )
+
     const payload = {
       name: data.name.trim(),
       slug: data.slug.trim(),
@@ -84,11 +92,13 @@ export function ProductForm({ product, collections = [] }: { product?: Product; 
       price: parseFloat(data.price),
       compare_at_price: data.compare_at_price ? parseFloat(data.compare_at_price) : null,
       category: data.category || 'uncategorized',
-      sizes: data.sizes.map(s => s.value).filter(Boolean),
+      sizes: sizesList,
+      size_inventory: sizeInventory,
       images: data.images,
       is_active: data.is_active,
       is_featured: data.is_featured,
-      stock_quantity: parseInt(data.stock_quantity) || 0,
+      shipping_class: data.shipping_class,
+      stock_quantity: Object.values(sizeInventory).reduce((a, b) => a + b, 0),
       updated_at: new Date().toISOString(),
     }
 
@@ -154,7 +164,7 @@ export function ProductForm({ product, collections = [] }: { product?: Product; 
               ))}
             </datalist>
             <p className="text-xs text-gray-400 mt-1">
-              Products sharing a collection appear together under Shop in the nav. Type a new name to create a collection.
+              Products sharing a collection appear together under Shop in the nav.
             </p>
           </div>
 
@@ -172,7 +182,7 @@ export function ProductForm({ product, collections = [] }: { product?: Product; 
 
       {/* Pricing */}
       <section className="bg-white border border-gray-100 rounded p-6 space-y-5">
-        <h2 className="text-sm font-medium tracking-wide">Pricing & Inventory</h2>
+        <h2 className="text-sm font-medium tracking-wide">Pricing & Shipping</h2>
         <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="block text-xs text-gray-500 mb-1.5">Price *</label>
@@ -205,20 +215,26 @@ export function ProductForm({ product, collections = [] }: { product?: Product; 
           </div>
 
           <div>
-            <label className="block text-xs text-gray-500 mb-1.5">Stock quantity</label>
-            <input
-              type="number"
-              min="0"
-              {...register('stock_quantity')}
-              className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-black"
-            />
+            <label className="block text-xs text-gray-500 mb-1.5">Shipping class</label>
+            <select
+              {...register('shipping_class')}
+              className="w-full border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-black bg-white"
+            >
+              <option value="standard">Standard</option>
+              <option value="oversize">Oversize (+surcharge)</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1">Set in Admin → Settings</p>
           </div>
         </div>
       </section>
 
-      {/* Sizes */}
+      {/* Sizes + Inventory */}
       <section className="bg-white border border-gray-100 rounded p-6 space-y-4">
-        <h2 className="text-sm font-medium tracking-wide">Sizes</h2>
+        <div>
+          <h2 className="text-sm font-medium tracking-wide">Sizes & Inventory</h2>
+          <p className="text-xs text-gray-400 mt-1">Click a size to add it, then set the stock quantity for each.</p>
+        </div>
+
         <div className="flex flex-wrap gap-2">
           {PRESET_SIZES.map(size => {
             const active = fields.some(f => f.value === size)
@@ -231,7 +247,7 @@ export function ProductForm({ product, collections = [] }: { product?: Product; 
                     const idx = fields.findIndex(f => f.value === size)
                     remove(idx)
                   } else {
-                    append({ value: size })
+                    append({ value: size, qty: '0' })
                   }
                 }}
                 className={`px-3 py-1.5 text-xs border rounded transition-colors ${active ? 'bg-black text-white border-black' : 'border-gray-200 hover:border-black'}`}
@@ -241,26 +257,41 @@ export function ProductForm({ product, collections = [] }: { product?: Product; 
             )
           })}
         </div>
-        <div className="space-y-2">
-          {fields.map((field, i) => (
-            <div key={field.id} className="flex items-center gap-2">
-              <input
-                {...register(`sizes.${i}.value`)}
-                className="border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-black w-32"
-              />
-              <button type="button" onClick={() => remove(i)} className="text-gray-400 hover:text-red-500">
-                <Trash2 size={14} />
-              </button>
+
+        {fields.length > 0 && (
+          <div className="border border-gray-100 rounded overflow-hidden">
+            <div className="grid grid-cols-[1fr_80px_32px] gap-0 text-xs text-gray-400 px-4 py-2 bg-gray-50 border-b border-gray-100">
+              <span>Size</span>
+              <span>Stock</span>
+              <span />
             </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => append({ value: '' })}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-black mt-1"
-          >
-            <Plus size={12} /> Add custom size
-          </button>
-        </div>
+            {fields.map((field, i) => (
+              <div key={field.id} className="grid grid-cols-[1fr_80px_32px] gap-0 items-center px-4 py-2 border-b border-gray-50 last:border-0">
+                <input
+                  {...register(`sizes.${i}.value`)}
+                  className="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-black w-24"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  {...register(`sizes.${i}.qty`)}
+                  className="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-black w-16"
+                />
+                <button type="button" onClick={() => remove(i)} className="text-gray-300 hover:text-red-500 flex justify-center">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => append({ value: '', qty: '0' })}
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-black mt-1"
+        >
+          <Plus size={12} /> Add custom size
+        </button>
       </section>
 
       {/* Images */}

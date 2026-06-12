@@ -11,9 +11,17 @@ export interface Product {
   is_active: boolean
   is_featured: boolean
   stock_quantity: number
+  size_inventory: Record<string, number>
+  shipping_class: 'standard' | 'oversize'
   stripe_price_id: string | null
   created_at: string
   updated_at: string
+}
+
+export interface ShippingSetting {
+  free_threshold: number
+  standard_rate: number
+  oversize_surcharge: number
 }
 
 export interface Order {

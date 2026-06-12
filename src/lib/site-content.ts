@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Policy } from '@/lib/policy-content'
+import type { ShippingSetting } from '@/lib/types'
+import { DEFAULT_SHIPPING } from '@/lib/shipping'
 
 export interface StoreMode {
   /** When false, checkout is a visual-only demo: the form is disabled and no
@@ -39,6 +41,25 @@ export async function getCommunity(): Promise<string[]> {
     return []
   } catch {
     return []
+  }
+}
+
+export async function getShippingSettings(): Promise<ShippingSetting> {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'shipping')
+      .single()
+    const v = data?.value as Partial<ShippingSetting> | undefined
+    return {
+      free_threshold: typeof v?.free_threshold === 'number' ? v.free_threshold : DEFAULT_SHIPPING.free_threshold,
+      standard_rate: typeof v?.standard_rate === 'number' ? v.standard_rate : DEFAULT_SHIPPING.standard_rate,
+      oversize_surcharge: typeof v?.oversize_surcharge === 'number' ? v.oversize_surcharge : DEFAULT_SHIPPING.oversize_surcharge,
+    }
+  } catch {
+    return DEFAULT_SHIPPING
   }
 }
 

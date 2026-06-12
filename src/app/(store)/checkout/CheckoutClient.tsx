@@ -1,6 +1,8 @@
 'use client'
 
 import { useCart } from '@/components/store/CartContext'
+import { calcShipping } from '@/lib/shipping'
+import { ShippingSetting } from '@/lib/types'
 import { loadStripe } from '@stripe/stripe-js'
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js'
 import { Lock } from 'lucide-react'
@@ -12,7 +14,6 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null
 
-/** A visual-only, fully disabled checkout form used in demo mode. */
 function DisabledForm() {
   const field =
     'w-full border border-gray-200 rounded px-3 py-2.5 text-sm bg-gray-50 text-gray-400'
@@ -54,8 +55,15 @@ function DisabledForm() {
   )
 }
 
-export function CheckoutClient({ ordersEnabled }: { ordersEnabled: boolean }) {
+interface Props {
+  ordersEnabled: boolean
+  shippingSettings: ShippingSetting
+}
+
+export function CheckoutClient({ ordersEnabled, shippingSettings }: Props) {
   const { items, totalPrice } = useCart()
+  const shippingAmount = calcShipping(items, shippingSettings)
+  const orderTotal = totalPrice + shippingAmount
 
   const fetchClientSecret = useCallback(async () => {
     const res = await fetch('/api/checkout', {
@@ -64,6 +72,7 @@ export function CheckoutClient({ ordersEnabled }: { ordersEnabled: boolean }) {
       body: JSON.stringify({ items }),
     })
     const data = await res.json()
+    if (!res.ok) throw new Error(data.error ?? 'Checkout failed')
     return data.client_secret as string
   }, [items])
 
@@ -93,8 +102,7 @@ export function CheckoutClient({ ordersEnabled }: { ordersEnabled: boolean }) {
               <Lock size={16} className="mt-0.5 shrink-0 text-gray-500" />
               <p className="text-xs leading-relaxed text-gray-600">
                 <span className="font-medium text-black">This is a demonstration storefront.</span>{' '}
-                Checkout is disabled — no orders are accepted and no payment will be processed. This
-                is not the official Lusiant store.
+                Checkout is disabled — no orders are accepted and no payment will be processed.
               </p>
             </div>
           )}
@@ -137,11 +145,25 @@ export function CheckoutClient({ ordersEnabled }: { ordersEnabled: boolean }) {
             </div>
             <div className="flex justify-between text-gray-500">
               <span className="tracking-wider">Shipping</span>
-              <span>Free</span>
+              <span>
+                {shippingAmount === 0
+                  ? <span className="text-green-600">Free</span>
+                  : `$${shippingAmount.toFixed(2)}`}
+              </span>
             </div>
-            <div className="flex justify-between font-medium pt-2 text-base">
+            {shippingAmount === 0 && totalPrice < shippingSettings.free_threshold && (
+              <p className="text-xs text-green-600">
+                Free shipping applied
+              </p>
+            )}
+            {shippingAmount > 0 && (
+              <p className="text-xs text-gray-400">
+                Free shipping on orders over ${shippingSettings.free_threshold.toFixed(0)}
+              </p>
+            )}
+            <div className="flex justify-between font-medium pt-2 text-base border-t border-gray-100 mt-2">
               <span className="tracking-wider">Total</span>
-              <span>${totalPrice.toFixed(2)}</span>
+              <span>${orderTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>

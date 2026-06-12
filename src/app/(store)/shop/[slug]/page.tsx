@@ -34,12 +34,31 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
   if (loading) return <div className="flex items-center justify-center h-96"><div className="w-4 h-4 border border-black border-t-transparent rounded-full animate-spin" /></div>
   if (!product) return notFound()
 
+  const inv = product.size_inventory ?? {}
+  const hasInventory = Object.keys(inv).length > 0
+
+  function sizeInStock(size: string): boolean {
+    if (!hasInventory) return product!.is_active
+    return (inv[size] ?? 0) > 0
+  }
+
+  const selectedSizeInStock = selectedSize ? sizeInStock(selectedSize) : true
+
   function handleAddToCart() {
     if (!selectedSize || !product) return
+    if (!selectedSizeInStock) return
     addItem(product, selectedSize)
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
   }
+
+  const addLabel = added
+    ? 'ADDED TO CART ✓'
+    : product.sizes.length > 0 && !selectedSize
+    ? 'SELECT A SIZE'
+    : !selectedSizeInStock
+    ? 'OUT OF STOCK'
+    : 'ADD TO CART'
 
   return (
     <div className="max-w-screen-xl mx-auto px-6 pt-12 pb-28 md:pb-12">
@@ -95,29 +114,35 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
             <div>
               <p className="text-xs tracking-widest uppercase mb-3">Size</p>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`px-4 py-2 text-sm border transition-colors ${
-                      selectedSize === size
-                        ? 'bg-black text-white border-black'
-                        : 'border-gray-200 hover:border-black'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {product.sizes.map(size => {
+                  const inStock = sizeInStock(size)
+                  return (
+                    <button
+                      key={size}
+                      onClick={() => inStock && setSelectedSize(size)}
+                      disabled={!inStock}
+                      className={`px-4 py-2 text-sm border transition-colors ${
+                        !inStock
+                          ? 'border-gray-100 text-gray-300 cursor-not-allowed line-through'
+                          : selectedSize === size
+                          ? 'bg-black text-white border-black'
+                          : 'border-gray-200 hover:border-black'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
 
           <button
             onClick={handleAddToCart}
-            disabled={product.sizes.length > 0 && !selectedSize}
+            disabled={product.sizes.length > 0 && (!selectedSize || !selectedSizeInStock)}
             className="w-full bg-black text-white py-4 text-sm tracking-widest font-medium hover:bg-gray-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {added ? 'ADDED TO CART ✓' : product.sizes.length > 0 && !selectedSize ? 'SELECT A SIZE' : 'ADD TO CART'}
+            {addLabel}
           </button>
 
           {!product.is_active && (
@@ -131,10 +156,10 @@ export default function ProductPage({ params }: { params: Promise<{ slug: string
         <span className="text-sm font-medium whitespace-nowrap">${product.price.toFixed(2)}</span>
         <button
           onClick={handleAddToCart}
-          disabled={product.sizes.length > 0 && !selectedSize}
+          disabled={product.sizes.length > 0 && (!selectedSize || !selectedSizeInStock)}
           className="flex-1 bg-black text-white py-3 text-xs tracking-widest font-medium disabled:opacity-40"
         >
-          {added ? 'ADDED ✓' : product.sizes.length > 0 && !selectedSize ? 'SELECT A SIZE' : 'ADD TO CART'}
+          {addLabel}
         </button>
       </div>
     </div>

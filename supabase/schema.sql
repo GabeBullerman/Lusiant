@@ -64,3 +64,14 @@ CREATE POLICY "Admins can manage settings" ON site_settings FOR ALL USING (auth.
 
 -- Service role bypass for webhook (order inserts via API route)
 CREATE POLICY "Service role can insert orders" ON orders FOR INSERT WITH CHECK (true);
+
+-- -------------------------------------------------------
+-- v2 migration: per-size inventory + shipping class
+-- Run these in the Supabase SQL editor on existing projects
+-- -------------------------------------------------------
+ALTER TABLE products ADD COLUMN IF NOT EXISTS size_inventory JSONB DEFAULT '{}';
+ALTER TABLE products ADD COLUMN IF NOT EXISTS shipping_class TEXT DEFAULT 'standard';
+
+INSERT INTO site_settings (key, value) VALUES
+  ('shipping', '{"free_threshold":150,"standard_rate":9.99,"oversize_surcharge":5.00}')
+ON CONFLICT (key) DO NOTHING;

@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { ShoppingBag, Menu, X, ChevronDown, User } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { ShoppingBag, Menu, X, ChevronDown, User, Search } from 'lucide-react'
 import { useCart } from './CartContext'
 import { useState } from 'react'
 
@@ -18,10 +18,11 @@ export function Navbar({ collections }: NavbarProps) {
   const { totalItems, openCart } = useCart()
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileShopOpen, setMobileShopOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const pathname = usePathname()
+  const router = useRouter()
 
-  // On the homepage the nav floats over the hero image (white text, no bar,
-  // does not stick on scroll). Everywhere else it's a normal sticky white bar.
   const overlay = pathname === '/'
 
   const navClass = overlay
@@ -35,9 +36,18 @@ export function Navbar({ collections }: NavbarProps) {
     setMobileShopOpen(false)
   }
 
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const q = searchQuery.trim()
+    if (!q) return
+    setSearchOpen(false)
+    setSearchQuery('')
+    setMenuOpen(false)
+    router.push(`/shop?q=${encodeURIComponent(q)}`)
+  }
+
   return (
     <nav className={navClass}>
-      {/* Subtle gradient for legibility when floating over the hero */}
       {overlay && (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-black/30 to-transparent" />
       )}
@@ -47,7 +57,6 @@ export function Navbar({ collections }: NavbarProps) {
         <div className="hidden md:flex items-center gap-8 text-xs tracking-widest font-medium uppercase">
           <Link href="/" className="hover:opacity-60 transition-opacity">Home</Link>
 
-          {/* Shop dropdown */}
           <div className="relative group">
             <Link href="/shop" className="flex items-center gap-1 hover:opacity-60 transition-opacity">
               Shop <ChevronDown size={12} className="mt-px" />
@@ -71,13 +80,12 @@ export function Navbar({ collections }: NavbarProps) {
           <Link href="/lookbook" className="hover:opacity-60 transition-opacity">Lookbook</Link>
         </div>
 
-        {/* Mobile menu button */}
-        <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+        {/* Mobile: hamburger */}
+        <button className="md:hidden" onClick={() => { setMenuOpen(!menuOpen); setSearchOpen(false) }} aria-label="Menu">
           {menuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        {/* Logo — wordmark silhouette tinted by currentColor (white over the
-            hero, black on inner pages) via a CSS mask. */}
+        {/* Logo */}
         <Link
           href="/"
           aria-label="Lusiant — home"
@@ -94,7 +102,16 @@ export function Navbar({ collections }: NavbarProps) {
         </Link>
 
         {/* Right */}
-        <div className="flex items-center gap-5 text-xs tracking-widest font-medium uppercase">
+        <div className="flex items-center gap-4 md:gap-5 text-xs tracking-widest font-medium uppercase">
+          {/* Mobile search toggle */}
+          <button
+            className="md:hidden hover:opacity-60 transition-opacity"
+            onClick={() => { setSearchOpen(v => !v); setMenuOpen(false) }}
+            aria-label="Search"
+          >
+            {searchOpen ? <X size={18} /> : <Search size={18} />}
+          </button>
+
           <Link href="/account" aria-label="Account" className="hover:opacity-60 transition-opacity">
             <User size={18} />
           </Link>
@@ -110,6 +127,28 @@ export function Navbar({ collections }: NavbarProps) {
           </button>
         </div>
       </div>
+
+      {/* Mobile search bar */}
+      {searchOpen && (
+        <div className="md:hidden bg-white border-t border-gray-100 px-5 py-3">
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-3">
+            <Search size={15} className="text-gray-400 shrink-0" />
+            <input
+              autoFocus
+              type="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search products…"
+              className="flex-1 text-sm outline-none bg-transparent placeholder:text-gray-400 text-black"
+            />
+            {searchQuery && (
+              <button type="submit" className="text-xs tracking-widest uppercase text-black">
+                Go
+              </button>
+            )}
+          </form>
+        </div>
+      )}
 
       {/* Mobile menu */}
       {menuOpen && (

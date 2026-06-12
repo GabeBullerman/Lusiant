@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { SettingsForm } from './SettingsForm'
-import { getStoreMode } from '@/lib/site-content'
+import { getStoreMode, getShippingSettings } from '@/lib/site-content'
 import { HeroSetting, AnnouncementSetting } from '@/lib/types'
+import { DEFAULT_SHIPPING } from '@/lib/shipping'
 
 async function getSettings() {
   const supabase = await createClient()
@@ -12,7 +13,11 @@ async function getSettings() {
 }
 
 export default async function SettingsPage() {
-  const [settings, storeMode] = await Promise.all([getSettings(), getStoreMode()])
+  const [settings, storeMode, shippingSettings] = await Promise.all([
+    getSettings(),
+    getStoreMode(),
+    getShippingSettings(),
+  ])
 
   return (
     <div className="p-8 max-w-2xl">
@@ -27,6 +32,7 @@ export default async function SettingsPage() {
         }}
         announcement={(settings.announcement as AnnouncementSetting) ?? { text: 'FREE SHIPPING ON ALL U.S ORDERS', enabled: true }}
         ordersEnabled={storeMode.orders_enabled}
+        shipping={shippingSettings ?? DEFAULT_SHIPPING}
       />
     </div>
   )
