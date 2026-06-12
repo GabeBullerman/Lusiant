@@ -9,9 +9,10 @@ interface Props {
   images: string[]
   title?: string
   aspectRatio?: string
+  slideHeight?: string
 }
 
-export function LookbookCarousel({ images, title, aspectRatio = '3/4' }: Props) {
+export function LookbookCarousel({ images, title, aspectRatio = '3/4', slideHeight }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
   const [canScroll, setCanScroll] = useState(false)
@@ -105,18 +106,33 @@ export function LookbookCarousel({ images, title, aspectRatio = '3/4' }: Props) 
               data-slide
               className="snap-start shrink-0 w-[88%] sm:w-[60%] lg:w-[40.5%]"
             >
-              <div className="relative bg-gray-50" style={{ aspectRatio }}>
-                <Image
-                  src={url}
-                  alt={title ? `${title} ${i + 1}` : `Lookbook ${i + 1}`}
-                  fill
-                  quality={60}
-                  placeholder="blur"
-                  blurDataURL={blurURL()}
-                  sizes="(max-width: 640px) 88vw, (max-width: 1024px) 60vw, 41vw"
-                  className="object-cover"
-                />
-              </div>
+              {slideHeight ? (
+                <div className={`relative ${slideHeight} bg-gray-50`}>
+                  <Image
+                    src={url}
+                    alt={title ? `${title} ${i + 1}` : `Lookbook ${i + 1}`}
+                    fill
+                    quality={60}
+                    placeholder="blur"
+                    blurDataURL={blurURL()}
+                    sizes="(max-width: 640px) 88vw, (max-width: 1024px) 60vw, 41vw"
+                    className="object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="relative bg-gray-50" style={{ aspectRatio }}>
+                  <Image
+                    src={url}
+                    alt={title ? `${title} ${i + 1}` : `Lookbook ${i + 1}`}
+                    fill
+                    quality={60}
+                    placeholder="blur"
+                    blurDataURL={blurURL()}
+                    sizes="(max-width: 640px) 88vw, (max-width: 1024px) 60vw, 41vw"
+                    className="object-cover"
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>
