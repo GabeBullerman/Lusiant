@@ -7,6 +7,8 @@ export async function GET(req: NextRequest) {
   const code = url.searchParams.get('code')
   const next = url.searchParams.get('next') ?? '/account'
 
+  const isPopup = url.searchParams.get('popup') === '1'
+
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -24,6 +26,10 @@ export async function GET(req: NextRequest) {
       }
     )
     await supabase.auth.exchangeCodeForSession(code)
+  }
+
+  if (isPopup) {
+    return NextResponse.redirect(new URL('/auth/popup-close', req.url))
   }
 
   return NextResponse.redirect(new URL(next, req.url))

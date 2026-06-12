@@ -40,10 +40,29 @@ export default function AccountLoginPage() {
 
   async function handleGoogle() {
     const supabase = createClient()
-    await supabase.auth.signInWithOAuth({
+    const { data } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?popup=1`,
+        skipBrowserRedirect: true,
+      },
     })
+    if (!data.url) return
+
+    const w = 500, h = 620
+    const left = window.screenX + (window.outerWidth - w) / 2
+    const top = window.screenY + (window.outerHeight - h) / 2
+    window.open(data.url, 'google-oauth', `width=${w},height=${h},left=${left},top=${top}`)
+
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return
+      if (event.data?.type === 'SUPABASE_AUTH_SUCCESS') {
+        window.removeEventListener('message', onMessage)
+        router.push('/account')
+        router.refresh()
+      }
+    }
+    window.addEventListener('message', onMessage)
   }
 
   return (
