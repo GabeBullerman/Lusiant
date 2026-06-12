@@ -45,7 +45,7 @@ export function LookbookCarousel({ images, title, aspectRatio = '3/4', slideHeig
     setProgress(max > 0 ? el.scrollLeft / max : 0)
   }, [])
 
-  const slideWidth = useCallback(() => {
+  const getSlideWidth = useCallback(() => {
     const el = scrollerRef.current
     if (!el) return 0
     const first = el.querySelector<HTMLElement>('[data-slide]')
@@ -61,10 +61,10 @@ export function LookbookCarousel({ images, title, aspectRatio = '3/4', slideHeig
       if (dir === 1 && el.scrollLeft >= max - 2) {
         el.scrollTo({ left: 0, behavior: 'smooth' })
       } else {
-        el.scrollBy({ left: dir * slideWidth(), behavior: 'smooth' })
+        el.scrollBy({ left: dir * getSlideWidth(), behavior: 'smooth' })
       }
     },
-    [slideWidth]
+    [getSlideWidth]
   )
 
   // Auto-advance (only when scrollable; respects reduced-motion).
