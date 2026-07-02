@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
             size: item.size,
           },
         },
-        unit_amount: Math.round(item.product.price * 100),
+        unit_amount: Math.round(productMap[item.product.id].price * 100),
       },
       quantity: item.quantity,
     }))

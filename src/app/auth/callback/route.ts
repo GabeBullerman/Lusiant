@@ -5,7 +5,8 @@ import { cookies } from 'next/headers'
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
-  const next = url.searchParams.get('next') ?? '/account'
+  const rawNext = url.searchParams.get('next') ?? '/account'
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/account'
 
   const isPopup = url.searchParams.get('popup') === '1'
 
