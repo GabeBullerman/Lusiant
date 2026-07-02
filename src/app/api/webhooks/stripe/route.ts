@@ -5,13 +5,19 @@ import Stripe from 'stripe'
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
-  const sig = req.headers.get('stripe-signature')!
+  const sig = req.headers.get('stripe-signature')
+
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
+  if (!sig || !webhookSecret) {
+    console.error('Webhook missing signature or secret')
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 400 })
+  }
 
   const stripe = getStripe()
   let event: Stripe.Event
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
   } catch (err) {
     console.error('Webhook signature error:', err)
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
@@ -40,7 +46,7 @@ export async function POST(req: NextRequest) {
         address?: { line1?: string; line2?: string; city?: string; state?: string; postal_code?: string; country?: string }
       } | null
 
-      await supabase.from('orders').insert({
+      const { error: insertError } = await supabase.from('orders').insert({
         stripe_session_id: session.id,
         customer_email: session.customer_details?.email ?? '',
         customer_name: session.customer_details?.name ?? '',
@@ -61,10 +67,23 @@ export async function POST(req: NextRequest) {
           : null,
       })
 
-      // Decrement per-size inventory for each ordered item
-      void decrementInventory(supabase, items)
+      if (insertError) {
+        // 23505 = unique_violation on stripe_session_id: Stripe re-delivered an
+        // event we already processed. Acknowledge without decrementing again.
+        if (insertError.code === '23505') {
+          return NextResponse.json({ received: true })
+        }
+        // A real insert failure — return non-2xx so Stripe retries instead of
+        // dropping the order, and don't touch inventory.
+        console.error('Failed to save order:', insertError)
+        return NextResponse.json({ error: 'Order insert failed' }, { status: 500 })
+      }
+
+      // Order was newly created — decrement inventory exactly once.
+      await decrementInventory(supabase, items)
     } catch (err) {
-      console.error('Failed to save order:', err)
+      console.error('Webhook handler error:', err)
+      return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 })
     }
   }
 
